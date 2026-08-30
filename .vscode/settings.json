@@ -3,5 +3,8 @@
     "source.fixAll": "explicit",
     "source.organizeImports": "explicit",
     "source.sortMembers": "explicit"
-  }
+  },
+  "markdown.styles": [
+    "https://socialsimulation.net/css/post.min.css"
+  ]
 }

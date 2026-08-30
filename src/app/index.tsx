@@ -8,7 +8,6 @@ import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { WebBadge } from '@/components/web-badge';
 import { BottomTabInset, MaxContentWidth, Spacing } from '@/constants/theme';
-
 function getDevMenuHint() {
   if (Platform.OS === 'web') {
     return <ThemedText type="small">use browser devtools</ThemedText>;
@@ -29,6 +28,7 @@ function getDevMenuHint() {
 }
 
 export default function HomeScreen() {
+  // 11        const { data: todos, error } = await supabase.from('todos').select();
   return (
     <ThemedView style={styles.container}>
       <SafeAreaView style={styles.safeArea}>
@@ -40,7 +40,7 @@ export default function HomeScreen() {
         </ThemedView>
 
         <ThemedText type="code" style={styles.code}>
-          get started
+          get startedaaaaa
         </ThemedText>
 
         <ThemedView type="backgroundElement" style={styles.stepContainer}>
