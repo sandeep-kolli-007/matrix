@@ -7,7 +7,7 @@ import { router } from 'expo-router';
 import { EntityIcon } from '@/components/entity-icon';
 import { HapticPressable as Pressable } from '@/components/haptic-pressable';
 import { entityCatalog } from '@/data/entity-catalog';
-import { matrixTheme } from '@/data/matrix-theme';
+import { matrixGroupColor, matrixTheme } from '@/data/matrix-theme';
 import { useLifeOS } from '@/providers/lifeos-provider';
 
 const modes = {
@@ -18,7 +18,6 @@ const modes = {
 } as const;
 
 type Mode = keyof typeof modes;
-const accents = ['#4F8CFF', '#39B98A', '#B37FEB', '#E5A33D', '#3EB9CC', '#E56A73'];
 const aliases: Record<string, string> = { Meal: 'Food', Medication: 'Medicine', Purchase: 'Shopping', 'Wardrobe Log': 'Dress log' };
 
 export default function AddScreen() {
@@ -57,7 +56,7 @@ export default function AddScreen() {
             <Text accessibilityRole="header" style={[s.title, { color: p.text }]}>Add</Text>
             <Text style={[s.subtitle, { color: p.muted }]}>Capture something in a few taps.</Text>
 
-            <View style={[s.search, { backgroundColor: p.panel, borderColor: p.line }]}>
+            <View style={[s.search, { backgroundColor: p.raised, borderColor: search ? p.accent : p.line }]}>
               <SymbolView name={{ ios: 'magnifyingglass', android: 'search', web: 'search' }} size={18} tintColor={p.muted} />
               <TextInput
                 accessibilityLabel="Search what to add"
@@ -99,18 +98,19 @@ export default function AddScreen() {
           </View>
         }
         renderItem={({ item }) => {
-          const color = accents[entityCatalog.indexOf(item) % accents.length];
+          const domain = matrixGroupColor(item.group, appearance);
           return (
             <Pressable
               accessibilityRole="button"
               accessibilityLabel={`Create ${item.name}`}
               onPress={() => open(item.name)}
-              style={({ pressed }) => [s.tile, { width: tileWidth, backgroundColor: p.panel, borderColor: p.line }, pressed && { opacity: 0.62 }]}
+              style={({ pressed }) => [s.tile, { width: tileWidth, backgroundColor: domain.soft, borderColor: pressed ? domain.accent : p.line }, pressed && { opacity: 0.74, transform: [{ scale: 0.985 }] }]}
             >
-              <View style={[s.icon, { backgroundColor: p.raised }]}>
-                <EntityIcon type={item.name} size={23} color={color} />
+              <View style={[s.icon, { backgroundColor: p.panel }]}>
+                <EntityIcon type={item.name} size={23} color={domain.accent} />
               </View>
               <Text numberOfLines={2} style={[s.label, { color: p.text }]}>{aliases[item.name] ?? item.name}</Text>
+              <Text numberOfLines={1} style={[s.groupLabel, { color: domain.accent }]}>{item.group}</Text>
             </Pressable>
           );
         }}
@@ -151,9 +151,10 @@ const s = StyleSheet.create({
   sectionTitle: { fontSize: 18, fontWeight: '600' },
   count: { fontSize: 12 },
   row: { gap: 10, marginBottom: 10 },
-  tile: { flexGrow: 0, minHeight: 102, borderRadius: 15, borderWidth: 1, paddingHorizontal: 8, paddingVertical: 15, alignItems: 'center', justifyContent: 'center', gap: 9 },
-  icon: { width: 40, height: 40, borderRadius: 12, alignItems: 'center', justifyContent: 'center' },
-  label: { fontSize: 12.5, fontWeight: '550' as '500', textAlign: 'center', lineHeight: 17 },
+  tile: { flexGrow: 0, minHeight: 116, borderRadius: 18, borderWidth: 1, paddingHorizontal: 8, paddingVertical: 14, alignItems: 'center', justifyContent: 'center', gap: 7 },
+  icon: { width: 42, height: 42, borderRadius: 13, alignItems: 'center', justifyContent: 'center' },
+  label: { fontSize: 12.5, fontWeight: '600', textAlign: 'center', lineHeight: 17 },
+  groupLabel: { fontSize: 9.5, fontWeight: '600' },
   empty: { paddingVertical: 36, alignItems: 'center' },
   emptyTitle: { fontSize: 16, fontWeight: '600' },
   emptyText: { fontSize: 13, marginTop: 5 },
