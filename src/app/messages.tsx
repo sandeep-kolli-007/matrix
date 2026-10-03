@@ -124,7 +124,7 @@ export default function MessagesScreen({ groupsOnly = false, embedded = false }:
                 onChangeText={value => setDrafts(current => ({ ...current, [selected.id]: value }))}
                 placeholder="Write a local draft"
                 placeholderTextColor={p.muted}
-                style={[s.composerInput, { backgroundColor: p.panel, color: p.text, borderColor: p.line }]}
+                style={[s.composerInput, { backgroundColor: p.raised, color: p.text, borderColor: draft ? p.accent : p.line }]}
               />
               <Pressable accessibilityRole="button" disabled={sending || !draft.trim()} onPress={() => void saveDraft()} style={[s.saveButton, { backgroundColor: p.accent, opacity: sending || !draft.trim() ? 0.35 : 1 }]}>
                 <SymbolView name={{ ios: 'arrow.up', android: 'arrow_upward', web: 'arrow_upward' }} size={18} tintColor={p.onAccent} />
@@ -147,7 +147,7 @@ export default function MessagesScreen({ groupsOnly = false, embedded = false }:
         ListHeaderComponent={
           <View>
             {!embedded ? <Text accessibilityRole="header" style={[s.title, { color: p.text }]}>Messages</Text> : null}
-            <View style={[s.searchWrap, { backgroundColor: p.panel, borderColor: p.line }]}>
+            <View style={[s.searchWrap, { backgroundColor: p.raised, borderColor: query ? p.accent : p.line }]}>
               <SymbolView name={{ ios: 'magnifyingglass', android: 'search', web: 'search' }} size={18} tintColor={p.muted} />
               <TextInput accessibilityLabel="Search conversations" value={query} onChangeText={setQuery} placeholder="Search conversations" placeholderTextColor={p.muted} style={[s.searchInput, { color: p.text }]} />
             </View>
@@ -173,7 +173,7 @@ export default function MessagesScreen({ groupsOnly = false, embedded = false }:
         }
         renderItem={({ item }) => (
           <Pressable accessibilityRole="button" onPress={() => setSelectedId(item.id)} style={[s.thread, { backgroundColor: p.panel, borderColor: p.line }]}>
-            <View style={[s.avatar, { backgroundColor: p.raised }]}>
+            <View style={[s.avatar, { backgroundColor: p.selected }]}>
               <Text style={[s.avatarText, { color: p.accent }]}>{item.group ? 'G' : item.title.slice(0, 2).toUpperCase()}</Text>
             </View>
             <View style={s.flex}>
