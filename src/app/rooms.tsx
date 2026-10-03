@@ -7,20 +7,20 @@ import { DistributionBars, LifeOrb, MotionReveal, SpatialStage, visualMetrics } 
 import { PremiumSurface } from '@/components/premium-surface';
 import { entityCatalog } from '@/data/entity-catalog';
 import { LifeEntity, listEntities, saveEntity } from '@/data/lifeos-store';
-import { matrixTheme } from '@/data/matrix-theme';
+import { matrixGroupColor, matrixTheme } from '@/data/matrix-theme';
 import { useLifeOS } from '@/providers/lifeos-provider';
 
 const rooms = {
-  work: { title: 'Work', description: 'Tasks, projects and milestones.', icon: { ios: 'checkmark.circle', android: 'task_alt', web: 'task_alt' }, types: ['Task', 'Project', 'Milestone', 'Workflow', 'Note'] },
-  habits: { title: 'Habits', description: 'Habits, routines and challenges.', icon: { ios: 'repeat', android: 'repeat', web: 'repeat' }, types: ['Habit', 'Routine', 'Challenge', 'Practice'] },
-  goals: { title: 'Goals', description: 'Goals, milestones and progress.', icon: { ios: 'target', android: 'track_changes', web: 'track_changes' }, types: ['Goal', 'Financial Goal', 'Milestone', 'Challenge'] },
-  money: { title: 'Money', description: 'Spending, budgets and accounts.', icon: { ios: 'indianrupeesign.circle', android: 'payments', web: 'payments' }, types: ['Expense', 'Income', 'Budget', 'Bill', 'Account', 'Subscription', 'Investment', 'Loan', 'Financial Goal', 'Insurance'] },
-  body: { title: 'Health', description: 'Workouts, meals and health logs.', icon: { ios: 'heart', android: 'favorite', web: 'favorite' }, types: ['Workout', 'Meal', 'Recipe', 'Water Log', 'Sleep Log', 'Mood Log', 'Cycle Log', 'Symptom', 'Medication', 'Appointment', 'Skincare', 'Grooming'] },
-  wardrobe: { title: 'Wardrobe', description: 'Outfits and wardrobe history.', icon: { ios: 'tshirt', android: 'checkroom', web: 'checkroom' }, types: ['Wardrobe Log'] },
-  assets: { title: 'Assets', description: 'Assets, vehicles and documents.', icon: { ios: 'shippingbox', android: 'inventory_2', web: 'inventory_2' }, types: ['Asset', 'Property', 'Vehicle', 'Insurance', 'Document', 'Purchase'] },
-  wishlist: { title: 'Wishlist', description: 'Things you want to buy or experience.', icon: { ios: 'heart.circle', android: 'favorite_border', web: 'favorite_border' }, types: ['Wish', 'Purchase', 'Trip', 'Book', 'Movie'] },
-  learning: { title: 'Learning', description: 'Books, courses and learning.', icon: { ios: 'book', android: 'menu_book', web: 'menu_book' }, types: ['Book', 'Course', 'Lesson', 'Skill', 'Practice', 'Journal', 'Reflection', 'Article', 'Quote', 'Podcast'] },
-  planning: { title: 'Planning', description: 'Events, trips and reminders.', icon: { ios: 'calendar', android: 'calendar_today', web: 'calendar_today' }, types: ['Event', 'Meeting', 'Trip', 'Itinerary', 'Place', 'Packing List', 'Reservation', 'Reminder'] },
+  work: { title: 'Work', description: 'Tasks, projects and milestones.', icon: { ios: 'checkmark.circle', android: 'task_alt', web: 'task_alt' }, group: 'Productivity', types: ['Task', 'Project', 'Milestone', 'Workflow', 'Note'] },
+  habits: { title: 'Habits', description: 'Habits, routines and challenges.', icon: { ios: 'repeat', android: 'repeat', web: 'repeat' }, group: 'Health', types: ['Habit', 'Routine', 'Challenge', 'Practice'] },
+  goals: { title: 'Goals', description: 'Goals, milestones and progress.', icon: { ios: 'target', android: 'track_changes', web: 'track_changes' }, group: 'Productivity', types: ['Goal', 'Financial Goal', 'Milestone', 'Challenge'] },
+  money: { title: 'Money', description: 'Spending, budgets and accounts.', icon: { ios: 'indianrupeesign.circle', android: 'payments', web: 'payments' }, group: 'Finance', types: ['Expense', 'Income', 'Budget', 'Bill', 'Account', 'Subscription', 'Investment', 'Loan', 'Financial Goal', 'Insurance'] },
+  body: { title: 'Health', description: 'Workouts, meals and health logs.', icon: { ios: 'heart', android: 'favorite', web: 'favorite' }, group: 'Health', types: ['Workout', 'Meal', 'Recipe', 'Water Log', 'Sleep Log', 'Mood Log', 'Cycle Log', 'Symptom', 'Medication', 'Appointment', 'Skincare', 'Grooming'] },
+  wardrobe: { title: 'Wardrobe', description: 'Outfits and wardrobe history.', icon: { ios: 'tshirt', android: 'checkroom', web: 'checkroom' }, group: 'Planning', types: ['Wardrobe Log'] },
+  assets: { title: 'Assets', description: 'Assets, vehicles and documents.', icon: { ios: 'shippingbox', android: 'inventory_2', web: 'inventory_2' }, group: 'Finance', types: ['Asset', 'Property', 'Vehicle', 'Insurance', 'Document', 'Purchase'] },
+  wishlist: { title: 'Wishlist', description: 'Things you want to buy or experience.', icon: { ios: 'heart.circle', android: 'favorite_border', web: 'favorite_border' }, group: 'Planning', types: ['Wish', 'Purchase', 'Trip', 'Book', 'Movie'] },
+  learning: { title: 'Learning', description: 'Books, courses and learning.', icon: { ios: 'book', android: 'menu_book', web: 'menu_book' }, group: 'Learning', types: ['Book', 'Course', 'Lesson', 'Skill', 'Practice', 'Journal', 'Reflection', 'Article', 'Quote', 'Podcast'] },
+  planning: { title: 'Planning', description: 'Events, trips and reminders.', icon: { ios: 'calendar', android: 'calendar_today', web: 'calendar_today' }, group: 'Planning', types: ['Event', 'Meeting', 'Trip', 'Itinerary', 'Place', 'Packing List', 'Reservation', 'Reminder'] },
 } as const;
 
 type RoomKey = keyof typeof rooms;
@@ -92,18 +92,19 @@ export default function RoomsScreen() {
         <View style={s.grid}>
           {Object.entries(rooms).map(([key, value]) => {
             const count = entities.filter(item => value.types.some(type => slug(type) === item.kind)).length;
+            const domain = matrixGroupColor(value.group, appearance);
             return (
               <Pressable
                 key={key}
                 accessibilityRole="button"
-                style={[s.room, { backgroundColor: p.panel, borderColor: p.line }]}
+                style={[s.room, { backgroundColor: domain.soft, borderColor: p.line }]}
                 onPress={() => router.push({ pathname: '/rooms', params: { room: key } })}
               >
-                <View style={[s.roomIcon, { backgroundColor: p.raised }]}>
-                  <SymbolView name={value.icon} size={22} tintColor={p.accent} />
+                <View style={[s.roomIcon, { backgroundColor: p.panel }]}>
+                  <SymbolView name={value.icon} size={22} tintColor={domain.accent} />
                 </View>
                 <Text style={[s.roomTitle, { color: p.text }]}>{value.title}</Text>
-                <Text style={[s.small, { color: p.muted }]}>{count} {count === 1 ? 'item' : 'items'}</Text>
+                <Text style={[s.small, { color: domain.accent }]}>{count} {count === 1 ? 'item' : 'items'}</Text>
               </Pressable>
             );
           })}
