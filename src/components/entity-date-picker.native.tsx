@@ -1,41 +1,85 @@
-import { HapticPressable as Pressable } from '@/components/haptic-pressable';
 import { useState } from 'react';
-import { Modal, Platform, Text, View } from 'react-native';
-import DateTimePicker, { DateTimePickerAndroid } from '@react-native-community/datetimepicker';
-import { formatLocalDate, formatLocalTime, pickerDate } from '@/data/entity-date';
-import { useLifeOS } from '@/providers/lifeos-provider';
-import { matrixTheme } from '@/data/matrix-theme';
+import { Platform, Pressable, Text, View } from 'react-native';
+import DateTimePicker, { type DateTimePickerEvent } from '@react-native-community/datetimepicker';
 import { SymbolView } from 'expo-symbols';
-type Props = { mode: 'date' | 'time'; value: string; label: string; onChange: (value: string) => void };
-export function EntityDatePicker({ mode, value, label, onChange }: Props) {
-  const { appearance } = useLifeOS();
-  const [open, setOpen] = useState(false);
-  const [draft, setDraft] = useState(() => pickerDate(value, mode));
-  const dark = appearance === 'dark';
-  const p = matrixTheme(appearance);
-  const displayValue = value ? (mode === 'date' ? pickerDate(value, mode).toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' }) : value) : `Select ${mode}`;
-  const foreground = dark ? '#F4F8F5' : '#152B20';
-  const commit = (date: Date) => onChange(mode === 'date' ? formatLocalDate(date) : formatLocalTime(date));
-  function show() {
-    const initial = pickerDate(value, mode);
-    if (Platform.OS === 'android') {
-      DateTimePickerAndroid.open({ value: initial, mode, is24Hour: true, onChange: (event, selected) => { if (event.type === 'set' && selected) commit(selected); } });
-    } else { setDraft(initial); setOpen(true); }
+
+import { matrixTheme } from '@/data/matrix-theme';
+import { useLifeOS } from '@/providers/lifeos-provider';
+
+function parseValue(mode: 'date' | 'time', value: string) {
+  const now = new Date();
+  if (mode === 'date' && /^\d{4}-\d{2}-\d{2}$/.test(value)) return new Date(`${value}T12:00:00`);
+  if (mode === 'time' && /^\d{2}:\d{2}$/.test(value)) {
+    const [hour, minute] = value.split(':').map(Number);
+    now.setHours(hour, minute, 0, 0);
   }
-  return <>
-    <Pressable accessibilityRole="button" accessibilityLabel={`${label}: ${displayValue}`} accessibilityHint={`Opens the ${mode} picker`} onPress={show} style={{ minHeight: 52, padding: 14, borderWidth: 1, borderColor: p.line, borderRadius: 14, backgroundColor: p.panel, flexDirection: 'row', alignItems: 'center', gap: 12 }}><SymbolView name={{ ios: mode === 'date' ? 'calendar' : 'clock', android: mode === 'date' ? 'calendar_today' : 'schedule', web: mode === 'date' ? 'calendar_today' : 'schedule' }} size={20} tintColor={p.accent} /><Text style={{ flex: 1, color: value ? p.text : p.muted, fontSize: 15 }}>{displayValue}</Text><SymbolView name={{ ios: 'chevron.down', android: 'expand_more', web: 'expand_more' }} size={16} tintColor={p.muted} /></Pressable>
-    {Platform.OS === 'ios' ? <Modal visible={open} transparent animationType="slide" onRequestClose={() => setOpen(false)}>
-      <View style={{ flex: 1, justifyContent: 'flex-end', backgroundColor: '#00000066' }}>
-        <View accessibilityViewIsModal style={{ backgroundColor: dark ? '#14231D' : '#FFFFFF', borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: 20, paddingBottom: 40 }}>
-          <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
-            <Pressable accessibilityRole="button" onPress={() => setOpen(false)} style={{ padding: 12 }}><Text style={{ color: foreground }}>Cancel</Text></Pressable>
-            <Text accessibilityRole="header" style={{ flex: 1, textAlign: 'center', color: foreground, fontWeight: '700' }}>{label}</Text>
-            <Pressable accessibilityRole="button" onPress={() => { commit(draft); setOpen(false); }} style={{ padding: 12 }}><Text style={{ color: dark ? '#68D9AB' : '#157952', fontWeight: '700' }}>Done</Text></Pressable>
-          </View>
-          {open ? <DateTimePicker value={draft} mode={mode} display="spinner" themeVariant={appearance} textColor={foreground} onChange={(_, selected) => { if (selected) setDraft(selected); }} /> : null}
-          <Pressable accessibilityRole="button" onPress={() => { onChange(''); setOpen(false); }} style={{ padding: 14, alignItems: 'center' }}><Text style={{ color: foreground }}>Clear {mode}</Text></Pressable>
+  return now;
+}
+
+function serialize(mode: 'date' | 'time', date: Date) {
+  if (mode === 'date') {
+    const y = date.getFullYear();
+    const m = String(date.getMonth() + 1).padStart(2, '0');
+    const d = String(date.getDate()).padStart(2, '0');
+    return `${y}-${m}-${d}`;
+  }
+  return `${String(date.getHours()).padStart(2, '0')}:${String(date.getMinutes()).padStart(2, '0')}`;
+}
+
+export function EntityDatePicker({ mode, value, label, onChange }: {
+  mode: 'date' | 'time';
+  value: string;
+  label: string;
+  onChange: (value: string) => void;
+}) {
+  const { appearance } = useLifeOS();
+  const p = matrixTheme(appearance);
+  const [open, setOpen] = useState(false);
+  const date = parseValue(mode, value);
+
+  function changed(event: DateTimePickerEvent, next?: Date) {
+    if (Platform.OS === 'android') setOpen(false);
+    if (event.type === 'dismissed' || !next) return;
+    onChange(serialize(mode, next));
+  }
+
+  return (
+    <View>
+      <Pressable
+        accessibilityRole="button"
+        accessibilityLabel={`${label}: ${value || 'Not set'}`}
+        onPress={() => setOpen(true)}
+        style={{
+          minHeight: 56,
+          borderRadius: 16,
+          backgroundColor: value ? p.selected : p.raised,
+          borderWidth: 1,
+          borderColor: value ? p.accent : p.line,
+          paddingHorizontal: 14,
+          flexDirection: 'row',
+          alignItems: 'center',
+          gap: 11,
+        }}
+      >
+        <View style={{ width: 32, height: 32, borderRadius: 10, alignItems: 'center', justifyContent: 'center', backgroundColor: value ? p.panel : p.selected }}>
+          <SymbolView name={{ ios: mode === 'date' ? 'calendar' : 'clock', android: mode === 'date' ? 'calendar_today' : 'schedule', web: mode === 'date' ? 'calendar_today' : 'schedule' }} size={16} tintColor={p.accent} />
         </View>
-      </View>
-    </Modal> : null}
-  </>;
+        <View style={{ flex: 1 }}>
+          <Text style={{ color: p.muted, fontSize: 10.5, fontWeight: '600', marginBottom: 2 }}>{label}</Text>
+          <Text style={{ color: value ? p.text : p.muted, fontSize: 15, fontWeight: value ? '600' : '500' }}>
+            {value || (mode === 'date' ? 'Choose date' : 'Choose time')}
+          </Text>
+        </View>
+        <SymbolView name={{ ios: 'chevron.down', android: 'expand_more', web: 'expand_more' }} size={16} tintColor={value ? p.accent : p.muted} />
+      </Pressable>
+      {open ? (
+        <DateTimePicker
+          value={date}
+          mode={mode}
+          display={Platform.OS === 'ios' ? 'compact' : 'default'}
+          onChange={changed}
+        />
+      ) : null}
+    </View>
+  );
 }
