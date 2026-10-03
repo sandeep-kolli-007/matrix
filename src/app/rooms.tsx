@@ -1,8 +1,10 @@
 import { useCallback, useState } from 'react';
-import { Alert, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Alert, Pressable, ScrollView, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
 import { router, useFocusEffect, useLocalSearchParams } from 'expo-router';
 import { SymbolView } from 'expo-symbols';
 
+import { DistributionBars, LifeOrb, MotionReveal, SpatialStage, visualMetrics } from '@/components/matrix-visuals';
+import { PremiumSurface } from '@/components/premium-surface';
 import { entityCatalog } from '@/data/entity-catalog';
 import { LifeEntity, listEntities, saveEntity } from '@/data/lifeos-store';
 import { matrixTheme } from '@/data/matrix-theme';
@@ -28,6 +30,8 @@ export default function RoomsScreen() {
   const { room } = useLocalSearchParams<{ room?: string }>();
   const active = room && room in rooms ? rooms[room as RoomKey] : null;
   const { appearance } = useLifeOS();
+  const { width } = useWindowDimensions();
+  const compact = width < 600;
   const p = matrixTheme(appearance);
   const [entities, setEntities] = useState<LifeEntity[]>([]);
   const [filter, setFilter] = useState('All');
@@ -50,6 +54,8 @@ export default function RoomsScreen() {
 
   const roomItems = active ? entities.filter(item => active.types.some(name => slug(name) === item.kind)) : [];
   const items = filter === 'All' ? roomItems : roomItems.filter(item => item.kind === slug(filter));
+  const roomVisual = visualMetrics(roomItems);
+  const typeDistribution = active ? active.types.map(name => ({ label: name, value: roomItems.filter(item => item.kind === slug(name)).length })).filter(item => item.value > 0) : [];
 
   async function toggleComplete(item: LifeEntity) {
     if (busy) return;
@@ -110,6 +116,26 @@ export default function RoomsScreen() {
               <SymbolView name={{ ios: 'chevron.right', android: 'chevron_right', web: 'chevron_right' }} size={15} tintColor={p.muted} />
             </Pressable>
           ) : null}
+
+          <MotionReveal>
+            <SpatialStage intensity={0.7}>
+              <PremiumSurface style={[s.roomHero, compact && s.roomHeroCompact, { backgroundColor: p.panel, borderColor: p.line }]}>
+                <View style={s.roomHeroCopy}>
+                  <Text style={[s.heroKicker, { color: p.accent }]}>ROOM PULSE</Text>
+                  <Text style={[s.heroTitle, { color: p.text }]}>{active.title} at a glance</Text>
+                  <Text style={[s.heroBody, { color: p.muted }]}>A live descriptive view of saved activity in this room.</Text>
+                  <View style={s.heroFacts}>
+                    <View><Text style={[s.heroFactValue, { color: p.text }]}>{roomItems.length}</Text><Text style={[s.heroFactLabel, { color: p.muted }]}>saved</Text></View>
+                    <View><Text style={[s.heroFactValue, { color: p.text }]}>{roomItems.filter(item => item.metadata.completed === true).length}</Text><Text style={[s.heroFactLabel, { color: p.muted }]}>completed</Text></View>
+                    <View><Text style={[s.heroFactValue, { color: p.text }]}>{roomItems.filter(item => item.deviceOnly).length}</Text><Text style={[s.heroFactLabel, { color: p.muted }]}>on device</Text></View>
+                  </View>
+                </View>
+                <View style={[s.roomOrb, compact && s.roomOrbCompact]}><LifeOrb score={roomVisual.pulse} palette={p} size={compact ? 126 : 138} label={active.title + ' pulse'} /></View>
+              </PremiumSurface>
+            </SpatialStage>
+          </MotionReveal>
+
+          {typeDistribution.length > 1 ? <MotionReveal delay={70}><View style={[s.roomChart, { backgroundColor: p.panel, borderColor: p.line }]}><Text style={[s.roomChartTitle, { color: p.text }]}>What’s in this room</Text><Text style={[s.roomChartSub, { color: p.muted }]}>Saved items by type</Text><View style={{ marginTop: 14 }}><DistributionBars data={typeDistribution} palette={p} maxItems={6} /></View></View></MotionReveal> : null}
 
           {error ? (
             <Pressable onPress={() => void refresh()} style={[s.state, { backgroundColor: p.panel, borderColor: p.line }]}>
@@ -193,6 +219,20 @@ const s = StyleSheet.create({
   subtitle: { fontSize: 13, lineHeight: 19, marginTop: 4 },
   iconButton: { width: 44, height: 44, borderRadius: 22, borderWidth: 1, alignItems: 'center', justifyContent: 'center' },
   grid: { flexDirection: 'row', flexWrap: 'wrap', gap: 10 },
+  roomHero: { minHeight: 208, borderRadius: 24, borderWidth: 1, padding: 18, flexDirection: 'row', overflow: 'hidden' },
+  roomHeroCompact: { flexDirection: 'column', minHeight: 0 },
+  roomHeroCopy: { flex: 1, justifyContent: 'center' },
+  heroKicker: { fontSize: 10, fontWeight: '700', letterSpacing: 1 },
+  heroTitle: { fontSize: 20, lineHeight: 26, fontWeight: '700', letterSpacing: -0.4, marginTop: 6 },
+  heroBody: { fontSize: 12.5, lineHeight: 18, marginTop: 6 },
+  heroFacts: { flexDirection: 'row', gap: 22, marginTop: 18 },
+  heroFactValue: { fontSize: 18, fontWeight: '700', fontVariant: ['tabular-nums'] },
+  heroFactLabel: { fontSize: 10.5, marginTop: 2 },
+  roomOrb: { width: 152, alignItems: 'center', justifyContent: 'center' },
+  roomOrbCompact: { width: '100%', marginTop: 10 },
+  roomChart: { borderRadius: 18, borderWidth: 1, padding: 16 },
+  roomChartTitle: { fontSize: 16, fontWeight: '600' },
+  roomChartSub: { fontSize: 11.5, marginTop: 3 },
   room: { width: '48.4%', minHeight: 132, padding: 16, borderRadius: 16, borderWidth: 1 },
   roomIcon: { width: 40, height: 40, borderRadius: 12, alignItems: 'center', justifyContent: 'center', marginBottom: 14 },
   roomTitle: { fontSize: 16, fontWeight: '600' },
