@@ -21,7 +21,7 @@ permissions:
   id-token: write
 
 concurrency:
-  group: matrix-pages
+  group: matrix-pages-production-ui
   cancel-in-progress: true
 
 jobs:
