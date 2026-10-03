@@ -316,6 +316,241 @@ export function visualMetrics(items: LifeEntity[]) {
 }
 
 
+
+export type TrendSeries = {
+  label: string;
+  color: string;
+  values: number[];
+};
+
+function scaledPath(values: number[], width: number, height: number, maxValue: number) {
+  if (!values.length) return '';
+  return values.map((value, index) => {
+    const x = values.length === 1 ? width / 2 : index * (width / (values.length - 1));
+    const y = height - 10 - (value / Math.max(1, maxValue)) * (height - 20);
+    return `${index === 0 ? 'M' : 'L'} ${x.toFixed(2)} ${y.toFixed(2)}`;
+  }).join(' ');
+}
+
+export function MultiTrendChart({
+  series,
+  palette,
+  height = 176,
+}: {
+  series: TrendSeries[];
+  palette: Palette;
+  height?: number;
+}) {
+  const width = 420;
+  const maxValue = Math.max(1, ...series.flatMap(item => item.values));
+  const horizontal = [0.25, 0.5, 0.75];
+
+  return (
+    <View accessibilityLabel={`Trend chart with ${series.length} series`} style={{ height }}>
+      <Svg width="100%" height={height} viewBox={`0 0 ${width} ${height}`} preserveAspectRatio="none">
+        {horizontal.map((ratio, index) => (
+          <Line
+            key={index}
+            x1="0"
+            y1={height * ratio}
+            x2={width}
+            y2={height * ratio}
+            stroke={palette.line}
+            strokeWidth="1"
+            opacity="0.55"
+          />
+        ))}
+        {series.map(item => (
+          <Path
+            key={item.label}
+            d={scaledPath(item.values, width, height, maxValue)}
+            fill="none"
+            stroke={item.color}
+            strokeWidth="3"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          />
+        ))}
+      </Svg>
+    </View>
+  );
+}
+
+export function DonutDistribution({
+  data,
+  palette,
+  size = 150,
+  strokeWidth = 16,
+}: {
+  data: Array<{ label: string; value: number; color: string }>;
+  palette: Palette;
+  size?: number;
+  strokeWidth?: number;
+}) {
+  const total = Math.max(1, data.reduce((sum, item) => sum + item.value, 0));
+  const radius = 50;
+  const circumference = 2 * Math.PI * radius;
+  let offset = 0;
+
+  return (
+    <View style={{ width: size, height: size, alignItems: 'center', justifyContent: 'center' }}>
+      <Svg width={size} height={size} viewBox="0 0 120 120">
+        <Circle cx="60" cy="60" r={radius} fill="none" stroke={palette.raised} strokeWidth={strokeWidth} />
+        {data.map(item => {
+          const fraction = item.value / total;
+          const dash = circumference * fraction;
+          const node = (
+            <Circle
+              key={item.label}
+              cx="60"
+              cy="60"
+              r={radius}
+              fill="none"
+              stroke={item.color}
+              strokeWidth={strokeWidth}
+              strokeLinecap="round"
+              strokeDasharray={`${Math.max(0, dash - 2)} ${circumference}`}
+              strokeDashoffset={-offset}
+              transform="rotate(-90 60 60)"
+            />
+          );
+          offset += dash;
+          return node;
+        })}
+      </Svg>
+      <View style={v.donutCenter}>
+        <Text style={[v.donutValue, { color: palette.text }]}>{total}</Text>
+        <Text style={[v.donutLabel, { color: palette.muted }]}>records</Text>
+      </View>
+    </View>
+  );
+}
+
+export function MicroBars({
+  values,
+  color,
+  trackColor,
+  height = 30,
+}: {
+  values: number[];
+  color: string;
+  trackColor: string;
+  height?: number;
+}) {
+  const max = Math.max(1, ...values);
+  return (
+    <View style={[v.microBars, { height }]}>
+      {values.map((value, index) => (
+        <View
+          key={index}
+          style={[
+            v.microBar,
+            {
+              backgroundColor: value ? color : trackColor,
+              height: Math.max(4, value / max * height),
+              opacity: value ? 0.88 : 0.45,
+            },
+          ]}
+        />
+      ))}
+    </View>
+  );
+}
+
+export function AmbientMatrixAnimation({
+  palette,
+  height = 112,
+}: {
+  palette: Palette;
+  height?: number;
+}) {
+  const reduced = useReduceMotion();
+  const phase = useSharedValue(0);
+
+  useEffect(() => {
+    if (reduced) {
+      phase.value = 0;
+      return;
+    }
+    phase.value = withRepeat(withTiming(1, { duration: 5200, easing: Easing.inOut(Easing.sin) }), -1, true);
+  }, [phase, reduced]);
+
+  const a = useAnimatedStyle(() => ({
+    transform: [
+      { translateX: phase.value * 22 - 11 },
+      { translateY: phase.value * -8 + 4 },
+      { scale: 0.94 + phase.value * 0.12 },
+    ],
+    opacity: 0.55 + phase.value * 0.25,
+  }));
+  const b = useAnimatedStyle(() => ({
+    transform: [
+      { translateX: phase.value * -18 + 9 },
+      { translateY: phase.value * 10 - 5 },
+      { scale: 1.06 - phase.value * 0.08 },
+    ],
+    opacity: 0.4 + (1 - phase.value) * 0.28,
+  }));
+  const cStyle = useAnimatedStyle(() => ({
+    transform: [{ rotate: `${phase.value * 10 - 5}deg` }],
+  }));
+
+  return (
+    <View style={[v.ambient, { height }]}>
+      <Animated.View style={[v.ambientBlob, a, { width: 94, height: 94, borderRadius: 47, backgroundColor: palette.selected }]} />
+      <Animated.View style={[v.ambientBlob, b, { width: 74, height: 74, borderRadius: 37, backgroundColor: palette.raised, right: 18, top: 18 }]} />
+      <Animated.View style={[v.ambientRing, cStyle, { borderColor: palette.accent }]}>
+        <View style={[v.ambientDot, { backgroundColor: palette.success }]} />
+      </Animated.View>
+    </View>
+  );
+}
+
+export function entityDashboard(items: LifeEntity[], days = 14) {
+  const active = items.filter(item => !item.archivedAt);
+  const now = new Date();
+  const dateKeys = Array.from({ length: days }, (_, index) => {
+    const target = new Date(now);
+    target.setDate(now.getDate() - (days - 1 - index));
+    return [
+      target.getFullYear(),
+      String(target.getMonth() + 1).padStart(2, '0'),
+      String(target.getDate()).padStart(2, '0'),
+    ].join('-');
+  });
+
+  const groupsMap = new Map<string, LifeEntity[]>();
+  const typesMap = new Map<string, LifeEntity[]>();
+
+  for (const item of active) {
+    const group = String(item.metadata.group ?? 'Other');
+    const type = String(item.metadata.entityType ?? item.kind);
+    groupsMap.set(group, [...(groupsMap.get(group) ?? []), item]);
+    typesMap.set(type, [...(typesMap.get(type) ?? []), item]);
+  }
+
+  const groupTrends = [...groupsMap.entries()]
+    .map(([label, records]) => ({
+      label,
+      values: dateKeys.map(key => records.filter(item => item.createdAt.slice(0, 10) === key).length),
+      total: records.length,
+    }))
+    .sort((a, b) => b.total - a.total);
+
+  const entityTrends = [...typesMap.entries()]
+    .map(([label, records]) => ({
+      label,
+      values: dateKeys.slice(-7).map(key => records.filter(item => item.createdAt.slice(0, 10) === key).length),
+      total: records.length,
+      updatedAt: records.reduce((latest, item) => latest > item.updatedAt ? latest : item.updatedAt, ''),
+      group: String(records[0]?.metadata.group ?? 'Other'),
+    }))
+    .sort((a, b) => b.total - a.total || b.updatedAt.localeCompare(a.updatedAt));
+
+  return { dateKeys, groupTrends, entityTrends };
+}
+
+
 export function SpatialStage({
   children,
   intensity = 1,
@@ -363,4 +598,13 @@ const v = StyleSheet.create({
   barFill: { height: 7, borderRadius: 4 },
   graphWrap: { alignItems: 'center', justifyContent: 'center', alignSelf: 'center' },
   graphHalo: { position: 'absolute', borderWidth: 1 },
+  donutCenter: { position: 'absolute', alignItems: 'center', justifyContent: 'center' },
+  donutValue: { fontSize: 24, fontWeight: '700', letterSpacing: -0.7 },
+  donutLabel: { fontSize: 9.5, marginTop: 1 },
+  microBars: { flexDirection: 'row', alignItems: 'flex-end', gap: 3 },
+  microBar: { flex: 1, minWidth: 3, borderRadius: 3 },
+  ambient: { position: 'relative', overflow: 'hidden', alignItems: 'center', justifyContent: 'center' },
+  ambientBlob: { position: 'absolute', left: 22, top: 8 },
+  ambientRing: { width: 88, height: 88, borderRadius: 44, borderWidth: 1.5, alignItems: 'center', justifyContent: 'center' },
+  ambientDot: { width: 10, height: 10, borderRadius: 5, position: 'absolute', top: 2 },
 });
