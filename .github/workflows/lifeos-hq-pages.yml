@@ -1,10 +1,17 @@
-name: Deploy LifeOS HQ to GitHub Pages
+name: Deploy MATRIX Web to GitHub Pages
 
 on:
   push:
     branches: [main]
     paths:
-      - 'hq/**'
+      - 'src/**'
+      - 'assets/**'
+      - 'public/**'
+      - 'scripts/**'
+      - 'app.json'
+      - 'package.json'
+      - 'package-lock.json'
+      - 'tsconfig.json'
       - '.github/workflows/lifeos-hq-pages.yml'
   workflow_dispatch:
 
@@ -14,7 +21,7 @@ permissions:
   id-token: write
 
 concurrency:
-  group: lifeos-hq-pages
+  group: matrix-pages
   cancel-in-progress: true
 
 jobs:
@@ -28,24 +35,27 @@ jobs:
         uses: actions/setup-node@v6
         with:
           node-version: 22
+          cache: npm
 
       - name: Install dependencies
-        working-directory: hq
-        run: npm install
+        run: npm ci
 
-      - name: Build static site
-        working-directory: hq
-        run: npm run build
-        env:
-          NEXT_PUBLIC_BASE_PATH: /matrix
+      - name: Typecheck
+        run: npm run typecheck
+
+      - name: Core regression tests
+        run: npm run test:core
+
+      - name: Export Expo web app
+        run: npm run export:web
 
       - name: Disable Jekyll processing
-        run: touch hq/out/.nojekyll
+        run: touch dist/.nojekyll
 
       - name: Upload Pages artifact
         uses: actions/upload-pages-artifact@v4
         with:
-          path: hq/out
+          path: dist
 
   deploy:
     environment:
