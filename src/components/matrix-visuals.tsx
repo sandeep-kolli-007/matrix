@@ -315,6 +315,37 @@ export function visualMetrics(items: LifeEntity[]) {
   return { pulse, daily, groups, done, taskCount: tasks.length, total: active.length };
 }
 
+
+export function SpatialStage({
+  children,
+  intensity = 1,
+}: {
+  children: React.ReactNode;
+  intensity?: number;
+}) {
+  const reduced = useReduceMotion();
+  const tilt = useSharedValue(0);
+
+  useEffect(() => {
+    if (reduced) {
+      tilt.value = 0;
+      return;
+    }
+    tilt.value = withRepeat(withTiming(1, { duration: 6200, easing: Easing.inOut(Easing.sin) }), -1, true);
+  }, [reduced, tilt]);
+
+  const style = useAnimatedStyle(() => ({
+    transform: [
+      { perspective: 900 },
+      { rotateX: `${(tilt.value - 0.5) * 2.2 * intensity}deg` },
+      { rotateY: `${(0.5 - tilt.value) * 3.2 * intensity}deg` },
+      { translateY: (tilt.value - 0.5) * -3 * intensity },
+    ],
+  }));
+
+  return <Animated.View style={style}>{children}</Animated.View>;
+}
+
 const v = StyleSheet.create({
   orbWrap: { alignItems: 'center', justifyContent: 'center' },
   orbitLayer: { position: 'absolute', borderWidth: 1 },
