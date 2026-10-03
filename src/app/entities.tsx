@@ -21,6 +21,7 @@ import {
   Text,
   TextInput,
   View,
+  useWindowDimensions,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Redirect, router, useFocusEffect, useLocalSearchParams } from 'expo-router';
@@ -51,6 +52,8 @@ export default function EntitiesScreen() {
   const params = useLocalSearchParams<{ type?: string; group?: string; id?: string; title?: string; request?: string; date?: string; deviceOnly?: string }>();
   const { appearance } = useLifeOS();
   const dark = appearance === 'dark';
+  const { width } = useWindowDimensions();
+  const wideForm = width >= 760;
   const palette = matrixTheme(appearance);
 
   const [screen, setScreen] = useState<Screen>('catalog');
@@ -214,7 +217,7 @@ export default function EntitiesScreen() {
     return (
       <SafeAreaView style={[styles.safe, { backgroundColor: palette.bg }]} edges={['top']}>
         <ScrollView contentContainerStyle={styles.formWrap} keyboardShouldPersistTaps="handled">
-          <Header title={isLog ? (selectedType.name === 'Meal' ? 'LOG FOOD' : selectedType.name === 'Workout' ? 'LOG WORKOUT' : selectedType.name === 'Mood Log' ? 'HOW ARE YOU?' : 'WHAT I WORE') : `${editing ? 'Edit' : 'New'} ${selectedType.name}`} onBack={() => { if (editing) setScreen('detail'); else returnToPreviousScreen(); }} palette={palette} />
+          <Header title={isLog ? (selectedType.name === 'Meal' ? 'Log food' : selectedType.name === 'Workout' ? 'Log workout' : selectedType.name === 'Mood Log' ? 'How are you?' : 'What I wore') : `${editing ? 'Edit' : 'New'} ${selectedType.name}`} onBack={() => { if (editing) setScreen('detail'); else returnToPreviousScreen(); }} palette={palette} />
           {!editing && ['Task', 'Habit'].includes(selectedType.name) ? <View style={[styles.captureTabs, { backgroundColor: palette.raised, borderColor: palette.line }]}>
             {['Task', 'Habit'].map(name => <Pressable key={name} accessibilityRole="button" accessibilityState={{ selected: selectedType.name === name }}
               onPress={() => {
@@ -260,9 +263,22 @@ export default function EntitiesScreen() {
             style={[styles.notesField, { backgroundColor: palette.raised, borderColor: palette.line, color: palette.text }]}
           />
           {visualCapture ? <SpecializedLog type={selectedType.name} values={fieldValues} palette={palette} onChange={(key, value) => setFieldValues(current => ({ ...current, [key]: value }))} /> : null}
-          {visualCapture ? null : isLog ? <SpecializedLog type={selectedType.name} values={fieldValues} palette={palette} onChange={(key, value) => setFieldValues(current => ({ ...current, [key]: value }))} /> : <View style={styles.dynamicGrid}>
+          {visualCapture ? null : isLog ? <SpecializedLog type={selectedType.name} values={fieldValues} palette={palette} onChange={(key, value) => setFieldValues(current => ({ ...current, [key]: value }))} /> : <>
+            <View style={styles.formSectionHead}>
+              <View style={styles.flex}>
+                <Text style={[styles.formSectionTitle, { color: palette.text }]}>Details</Text>
+                <Text style={[styles.formSectionSubtitle, { color: palette.muted }]}>Add only what is useful. You can edit this later.</Text>
+              </View>
+            </View>
+            <View style={styles.dynamicGrid}>
             {fieldsForEntity(selectedType.name).map((item) => (
-              <View key={item.key} style={styles.dynamicItem}>
+              <View
+                key={item.key}
+                style={[
+                  styles.dynamicItem,
+                  wideForm && !item.weeklySchedule && !['people', 'peopleIds', 'description', 'notes'].includes(item.key) && styles.dynamicItemWide,
+                ]}
+              >
                 <Text style={[styles.label, { color: palette.muted }]}>{((selectedType.name === 'Task' && item.key === 'project') || (selectedType.name === 'Habit' && item.key === 'goal')) ? 'Part of · optional' : item.label}</Text>
                 {selectedType.name === 'Expense' && item.key === 'amount' ? <TextInput accessibilityLabel="Expense amount" value={fieldValues.amount ?? ''} onChangeText={value => { const amount = value.replace(',', '.'); if (/^\d*(\.\d*)?$/.test(amount)) setFieldValues(current => ({ ...current, amount })); }} keyboardType="decimal-pad" inputMode="decimal" placeholder="0.00" placeholderTextColor={palette.muted} style={[styles.field, { color: palette.text, backgroundColor: palette.raised, borderColor: fieldValues.amount ? accent : palette.line, marginBottom: 16 }]} /> : selectedType.name === 'Expense' && item.key === 'account' ? <View style={{ marginBottom: 16 }}>
                   <Pressable accessibilityRole="button" accessibilityLabel="Select expense account" accessibilityState={{ expanded: accountPickerOpen }} onPress={() => setAccountPickerOpen(true)} style={{ minHeight: 52, padding: 14, borderWidth: 1, borderColor: palette.line, borderRadius: 14, backgroundColor: palette.raised, flexDirection: 'row', alignItems: 'center', gap: 12 }}>
@@ -340,7 +356,8 @@ export default function EntitiesScreen() {
                 />}
               </View>
             ))}
-          </View>}
+            </View>
+          </>}
 
           <View style={styles.sectionIntro}>
             <View style={styles.flex}>
@@ -445,7 +462,6 @@ function Header({ title, onBack, palette }: { title: string; onBack: () => void;
     <View style={styles.header}>
       <Pressable accessibilityRole="button" accessibilityLabel="Go back" onPress={onBack} style={styles.backButton}><SymbolView name={{ ios: 'chevron.left', android: 'arrow_back', web: 'arrow_back' }} size={22} tintColor={palette.text} /></Pressable>
       <Text numberOfLines={1} style={[styles.headerTitle, { color: palette.text }]}>{title}</Text>
-      <View style={styles.headerSpacer} />
     </View>
   );
 }
@@ -487,11 +503,10 @@ const styles = StyleSheet.create({
   name: { fontSize: 12, fontWeight: '900', marginTop: 11 },
   groupName: { fontSize: 9, marginTop: 3 },
   private: { fontSize: 8, fontWeight: '800', marginTop: 7 },
-  header: { flexDirection: 'row', alignItems: 'center', height: 44, marginBottom: 20 },
+  header: { flexDirection: 'row', alignItems: 'center', minHeight: 44, marginBottom: 18 },
   backButton: { width: 44, height: 44, justifyContent: 'center' },
   backText: { fontSize: 36, lineHeight: 38 },
-  headerTitle: { flex: 1, textAlign: 'center', fontSize: 17, fontWeight: '650' as '600' },
-  headerSpacer: { width: 44 },
+  headerTitle: { flex: 1, textAlign: 'left', fontSize: 19, fontWeight: '700', letterSpacing: -0.3 },
   typeHero: { flexDirection: 'row', alignItems: 'center', borderRadius: 24, padding: 18, borderWidth: 1, marginBottom: 22, gap: 12 },
   captureTabs: { flexDirection: 'row', padding: 4, borderWidth: 1, borderRadius: 14, marginBottom: 20 },
   captureTab: { flex: 1, minHeight: 42, alignItems: 'center', justifyContent: 'center', borderRadius: 11 },
@@ -502,8 +517,12 @@ const styles = StyleSheet.create({
   label: { fontSize: 12, fontWeight: '600', letterSpacing: 0.1, marginBottom: 8, marginLeft: 2 },
   field: { borderWidth: 1, borderRadius: 16, paddingHorizontal: 15, minHeight: 54, fontSize: 15, marginBottom: 18 },
   details: { minHeight: 132, paddingTop: 15, textAlignVertical: 'top' },
-  dynamicGrid: { flexDirection: 'row', flexWrap: 'wrap', columnGap: 10 },
+  dynamicGrid: { flexDirection: 'row', flexWrap: 'wrap', columnGap: 12, justifyContent: 'space-between' },
   dynamicItem: { width: '100%' },
+  dynamicItemWide: { width: '48.6%' },
+  formSectionHead: { flexDirection: 'row', alignItems: 'center', marginTop: 6, marginBottom: 13 },
+  formSectionTitle: { fontSize: 17, fontWeight: '700', letterSpacing: -0.25 },
+  formSectionSubtitle: { fontSize: 11.5, lineHeight: 17, marginTop: 3 },
   dynamicField: { marginBottom: 16 },
   privacy: { flexDirection: 'row', alignItems: 'center', borderRadius: 19, borderWidth: 1, padding: 14, gap: 12 },
   privacyIcon: { width: 38, height: 38, borderRadius: 13, alignItems: 'center', justifyContent: 'center' },
