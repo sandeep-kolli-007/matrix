@@ -81,7 +81,7 @@ export default function PeopleScreen() {
               </Pressable>
             </View>
 
-            <View style={[s.searchWrap, { backgroundColor: p.panel, borderColor: p.line }]}>
+            <View style={[s.searchWrap, { backgroundColor: p.raised, borderColor: query ? p.rose : p.line }]}>
               <SymbolView name={{ ios: 'magnifyingglass', android: 'search', web: 'search' }} size={18} tintColor={p.muted} />
               <TextInput accessibilityLabel="Search people" value={query} onChangeText={setQuery} placeholder="Search contacts" placeholderTextColor={p.muted} style={[s.search, { color: p.text }]} />
             </View>
@@ -105,8 +105,8 @@ export default function PeopleScreen() {
           const initials = item.kind === 'group' ? 'G' : item.title.split(/\s+/).slice(0, 2).map(part => part[0]).join('').toUpperCase();
           return (
             <Pressable accessibilityRole="button" onPress={() => router.navigate({ pathname: '/entities', params: { id: item.id } })} style={[s.person, { backgroundColor: p.panel, borderColor: p.line }]}>
-              <View style={[s.avatar, { backgroundColor: p.raised }]}>
-                <Text style={[s.initials, { color: p.accent }]}>{initials}</Text>
+              <View style={[s.avatar, { backgroundColor: p.selected }]}>
+                <Text style={[s.initials, { color: p.rose }]}>{initials}</Text>
               </View>
               <View style={s.flex}>
                 <Text style={[s.name, { color: p.text }]}>{item.title}</Text>
