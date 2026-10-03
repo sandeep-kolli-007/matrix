@@ -4,14 +4,18 @@ import { useLifeOS } from '@/providers/lifeos-provider';
 
 export default function AppTabs() {
   const { appearance } = useLifeOS();
-  const dark = appearance === 'dark';
-  const { accent, muted, bg } = matrixTheme(appearance);
+  const { accent, muted, panel } = matrixTheme(appearance);
+
   return (
     <NativeTabs
-      backgroundColor={bg}
+      backgroundColor={panel}
       tintColor={accent}
       iconColor={{ default: muted, selected: accent }}
-      labelStyle={{ default: { color: muted }, selected: { color: accent } }}>
+      labelStyle={{
+        default: { color: muted, fontSize: 11 },
+        selected: { color: accent, fontSize: 11 },
+      }}
+    >
       <NativeTabs.Trigger name="index">
         <NativeTabs.Trigger.Label>Home</NativeTabs.Trigger.Label>
         <NativeTabs.Trigger.Icon sf="house.fill" md="home" />
@@ -22,11 +26,11 @@ export default function AppTabs() {
       </NativeTabs.Trigger>
       <NativeTabs.Trigger name="add">
         <NativeTabs.Trigger.Label>Add</NativeTabs.Trigger.Label>
-        <NativeTabs.Trigger.Icon sf="plus.app.fill" md="add_circle" />
+        <NativeTabs.Trigger.Icon sf="plus.circle.fill" md="add_circle" />
       </NativeTabs.Trigger>
       <NativeTabs.Trigger name="matrix">
         <NativeTabs.Trigger.Label>Matrix</NativeTabs.Trigger.Label>
-        <NativeTabs.Trigger.Icon sf="square.grid.2x2.fill" md="explore" />
+        <NativeTabs.Trigger.Icon sf="square.grid.2x2.fill" md="grid_view" />
       </NativeTabs.Trigger>
       <NativeTabs.Trigger name="people">
         <NativeTabs.Trigger.Label>People</NativeTabs.Trigger.Label>
