@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { FlatList, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { FlatList, ScrollView, StyleSheet, Text, TextInput, View, useWindowDimensions } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { SymbolView } from 'expo-symbols';
 import { router } from 'expo-router';
@@ -13,6 +13,8 @@ import { entityCatalog, entityGroups } from '@/data/entity-catalog';
 
 export default function Matrix() {
   const { items, loading, error, reload, p } = useRecords();
+  const { width } = useWindowDimensions();
+  const compact = width < 600;
   const [type, setType] = useState<string | null>(null);
   const [group, setGroup] = useState('All');
   const [query, setQuery] = useState('');
@@ -81,7 +83,7 @@ export default function Matrix() {
             {!type ? (
               <MotionReveal>
                 <SpatialStage intensity={1.1}>
-                  <PremiumSurface style={[s.graphCard, { backgroundColor: p.panel, borderColor: p.line }]}>
+                  <PremiumSurface style={[s.graphCard, compact && s.graphCardCompact, { backgroundColor: p.panel, borderColor: p.line }]}>
                     <View style={s.graphCopy}>
                       <Text style={[s.kicker, { color: p.accent }]}>LIFE GRAPH</Text>
                       <Text style={[s.graphTitle, { color: p.text }]}>Your world, connected</Text>
@@ -99,8 +101,8 @@ export default function Matrix() {
                         </View>
                       </View>
                     </View>
-                    <View style={s.graphVisual}>
-                      <LifeGraph groups={visual.groups} palette={p} size={238} />
+                    <View style={[s.graphVisual, compact && s.graphVisualCompact]}>
+                      <LifeGraph groups={visual.groups} palette={p} size={compact ? 250 : 238} />
                     </View>
                   </PremiumSurface>
                 </SpatialStage>
@@ -214,6 +216,7 @@ const s = StyleSheet.create({
   iconButton: { width: 44, height: 44, borderRadius: 22, borderWidth: 1, alignItems: 'center', justifyContent: 'center' },
   graphCard: { minHeight: 278, borderRadius: 28, borderWidth: 1, padding: 18, marginTop: 20, flexDirection: 'row', overflow: 'hidden' },
   graphCopy: { flex: 1, minWidth: 0, justifyContent: 'center', zIndex: 2 },
+  graphCardCompact: { flexDirection: 'column', minHeight: 0 },
   kicker: { fontSize: 10, fontWeight: '700', letterSpacing: 1.1 },
   graphTitle: { fontSize: 22, lineHeight: 28, fontWeight: '700', letterSpacing: -0.5, marginTop: 7 },
   graphBody: { fontSize: 12.5, lineHeight: 19, marginTop: 8, maxWidth: 330 },
@@ -221,6 +224,7 @@ const s = StyleSheet.create({
   graphMetric: { fontSize: 22, fontWeight: '700', fontVariant: ['tabular-nums'] },
   graphMetricLabel: { fontSize: 10.5, marginTop: 2 },
   graphVisual: { width: 250, alignItems: 'center', justifyContent: 'center', marginRight: -12 },
+  graphVisualCompact: { width: '100%', marginRight: 0, marginTop: 8 },
   search: { flexDirection: 'row', alignItems: 'center', minHeight: 50, borderRadius: 14, borderWidth: 1, paddingLeft: 14, marginTop: 18 },
   searchInput: { flex: 1, paddingHorizontal: 11, paddingVertical: 12, fontSize: 14 },
   segment: { flexDirection: 'row', borderRadius: 12, padding: 3, marginTop: 14 },
