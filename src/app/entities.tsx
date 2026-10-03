@@ -1,4 +1,4 @@
-import { matrixTheme } from '@/data/matrix-theme';
+import { matrixGroupColor, matrixTheme } from '@/data/matrix-theme';
 import { HapticPressable as Pressable } from '@/components/haptic-pressable';
 import { EntityIcon } from '@/components/entity-icon';
 import { SymbolView } from 'expo-symbols';
@@ -38,15 +38,6 @@ import { LifeEntity, listEntities, removeEntity, saveEntity, setEntityArchived }
 import { useLifeOS } from '@/providers/lifeos-provider';
 
 type Screen = 'catalog' | 'create' | 'detail';
-
-const groupAccent: Record<string, string> = {
-  Productivity: '#4DA3FF',
-  Health: '#42D09B',
-  People: '#FF7185',
-  Planning: '#8B87FF',
-  Finance: '#58C7D8',
-  Learning: '#B986FF',
-};
 
 function slug(value: string) {
   return value.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
@@ -217,40 +208,64 @@ export default function EntitiesScreen() {
 
   if (screen === 'create' && selectedType) {
     const isLog = specializedLogTypes.includes(selectedType.name);
-    const accent = isLog ? '#A5D957' : groupAccent[selectedType.group] ?? '#50D39A';
+    const groupColor = matrixGroupColor(selectedType.group, appearance);
+    const accent = groupColor.accent;
+    const accentSoft = groupColor.soft;
     return (
       <SafeAreaView style={[styles.safe, { backgroundColor: palette.bg }]} edges={['top']}>
         <ScrollView contentContainerStyle={styles.formWrap} keyboardShouldPersistTaps="handled">
           <Header title={isLog ? (selectedType.name === 'Meal' ? 'LOG FOOD' : selectedType.name === 'Workout' ? 'LOG WORKOUT' : selectedType.name === 'Mood Log' ? 'HOW ARE YOU?' : 'WHAT I WORE') : `${editing ? 'Edit' : 'New'} ${selectedType.name}`} onBack={() => { if (editing) setScreen('detail'); else returnToPreviousScreen(); }} palette={palette} />
-          {!editing && ['Task', 'Habit'].includes(selectedType.name) ? <View style={[styles.captureTabs, { backgroundColor: palette.panel, borderColor: palette.line }]}>
+          {!editing && ['Task', 'Habit'].includes(selectedType.name) ? <View style={[styles.captureTabs, { backgroundColor: palette.raised, borderColor: palette.line }]}>
             {['Task', 'Habit'].map(name => <Pressable key={name} accessibilityRole="button" accessibilityState={{ selected: selectedType.name === name }}
               onPress={() => {
                 const definition = entityCatalog.find(item => item.name === name)!;
                 setSelectedType(definition);
                 const keys = new Set(fieldsForEntity(name).map(field => field.key));
                 setFieldValues(previous => Object.fromEntries(Object.entries(previous).filter(([key]) => keys.has(key))));
-              }} style={[styles.captureTab, { backgroundColor: selectedType.name === name ? palette.raised : 'transparent' }]}>
-              <Text style={{ color: selectedType.name === name ? (dark ? '#A5D957' : '#537F1C') : palette.muted, fontSize: 15 }}>{name === 'Task' ? '✓' : '↻'} {name}</Text>
+              }} style={[styles.captureTab, { backgroundColor: selectedType.name === name ? palette.panel : 'transparent' }]}>
+              <Text style={{ color: selectedType.name === name ? accent : palette.muted, fontSize: 14, fontWeight: selectedType.name === name ? '650' as '600' : '500' }}>{name === 'Task' ? '✓' : '↻'} {name}</Text>
             </Pressable>)}
-          </View> : isLog ? null : <View style={[styles.typeHero, { backgroundColor: palette.panel, borderColor: palette.line }]}>
-            <View style={[styles.heroIcon, { backgroundColor: `${accent}25` }]}><EntityIcon type={selectedType.name} color={accent} size={26} /></View>
+          </View> : isLog ? null : <View style={[styles.typeHero, { backgroundColor: accentSoft, borderColor: accent }]}>
+            <View style={[styles.heroIcon, { backgroundColor: palette.panel }]}><EntityIcon type={selectedType.name} color={accent} size={26} /></View>
             <View style={styles.flex}>
               <Text style={[styles.heroTitle, { color: palette.text }]}>{selectedType.name}</Text>
-              <Text style={[styles.heroSub, { color: palette.muted }]}>{selectedType.group} · MATRIX entity</Text>
+              <Text style={[styles.heroSub, { color: palette.muted }]}>{selectedType.group} · {editing ? 'Editing saved item' : 'New entry'}</Text>
+            </View>
+            <View style={[styles.contextBadge, { backgroundColor: palette.panel }]}>
+              <View style={[styles.contextDot, { backgroundColor: accent }]} />
+              <Text style={[styles.contextText, { color: accent }]}>{selectedType.group}</Text>
             </View>
           </View>}
 
-          <Text style={[styles.label, { color: palette.muted }]}>NAME</Text>
-          <TextInput accessibilityLabel={selectedType.name + ' name'} value={title} onChangeText={setTitle} placeholder={selectedType.name + ' name'} placeholderTextColor={palette.muted} autoCapitalize="sentences" returnKeyType="done" style={{ minHeight: 52, padding: 14, marginBottom: 16, borderWidth: 1, borderColor: palette.line, borderRadius: 14, color: palette.text, backgroundColor: palette.panel, fontSize: 16 }} />
-          <Text style={[styles.label, { color: palette.muted }]}>NOTES · OPTIONAL</Text>
-          <TextInput accessibilityLabel={selectedType.name + ' notes, optional'} value={details} onChangeText={setDetails} multiline placeholder="Add notes (optional)" placeholderTextColor={palette.muted} textAlignVertical="top" style={{ minHeight: 112, padding: 14, marginBottom: 16, borderWidth: 1, borderColor: palette.line, borderRadius: 14, backgroundColor: palette.panel, color: palette.text, fontSize: 15, lineHeight: 22 }} />
+          <Text style={[styles.label, { color: palette.muted }]}>Name</Text>
+          <TextInput
+            accessibilityLabel={selectedType.name + ' name'}
+            value={title}
+            onChangeText={setTitle}
+            placeholder={`Name this ${selectedType.name.toLowerCase()}`}
+            placeholderTextColor={palette.muted}
+            autoCapitalize="sentences"
+            returnKeyType="done"
+            style={[styles.heroField, { color: palette.text, backgroundColor: title ? accentSoft : palette.raised, borderColor: title ? accent : palette.line }]}
+          />
+          <Text style={[styles.label, { color: palette.muted }]}>Notes <Text style={{ fontWeight: '500' }}>· optional</Text></Text>
+          <TextInput
+            accessibilityLabel={selectedType.name + ' notes, optional'}
+            value={details}
+            onChangeText={setDetails}
+            multiline
+            placeholder="Add context, links, or anything worth remembering"
+            placeholderTextColor={palette.muted}
+            textAlignVertical="top"
+            style={[styles.notesField, { backgroundColor: palette.raised, borderColor: palette.line, color: palette.text }]}
+          />
           {visualCapture ? <SpecializedLog type={selectedType.name} values={fieldValues} palette={palette} onChange={(key, value) => setFieldValues(current => ({ ...current, [key]: value }))} /> : null}
           {visualCapture ? null : isLog ? <SpecializedLog type={selectedType.name} values={fieldValues} palette={palette} onChange={(key, value) => setFieldValues(current => ({ ...current, [key]: value }))} /> : <View style={styles.dynamicGrid}>
             {fieldsForEntity(selectedType.name).map((item) => (
               <View key={item.key} style={styles.dynamicItem}>
-                <Text style={[styles.label, { color: palette.muted }]}>{((selectedType.name === 'Task' && item.key === 'project') || (selectedType.name === 'Habit' && item.key === 'goal')) ? 'PART OF · OPTIONAL' : item.label.toUpperCase()}</Text>
-                {selectedType.name === 'Expense' && item.key === 'amount' ? <TextInput accessibilityLabel="Expense amount" value={fieldValues.amount ?? ''} onChangeText={value => { const amount = value.replace(',', '.'); if (/^\d*(\.\d*)?$/.test(amount)) setFieldValues(current => ({ ...current, amount })); }} keyboardType="decimal-pad" inputMode="decimal" placeholder="0.00" placeholderTextColor={palette.muted} style={[styles.field, { color: palette.text, backgroundColor: palette.panel, borderColor: palette.line, marginBottom: 16 }]} /> : selectedType.name === 'Expense' && item.key === 'account' ? <View style={{ marginBottom: 16 }}>
-                  <Pressable accessibilityRole="button" accessibilityLabel="Select expense account" accessibilityState={{ expanded: accountPickerOpen }} onPress={() => setAccountPickerOpen(true)} style={{ minHeight: 52, padding: 14, borderWidth: 1, borderColor: palette.line, borderRadius: 14, backgroundColor: palette.panel, flexDirection: 'row', alignItems: 'center', gap: 12 }}>
+                <Text style={[styles.label, { color: palette.muted }]}>{((selectedType.name === 'Task' && item.key === 'project') || (selectedType.name === 'Habit' && item.key === 'goal')) ? 'Part of · optional' : item.label}</Text>
+                {selectedType.name === 'Expense' && item.key === 'amount' ? <TextInput accessibilityLabel="Expense amount" value={fieldValues.amount ?? ''} onChangeText={value => { const amount = value.replace(',', '.'); if (/^\d*(\.\d*)?$/.test(amount)) setFieldValues(current => ({ ...current, amount })); }} keyboardType="decimal-pad" inputMode="decimal" placeholder="0.00" placeholderTextColor={palette.muted} style={[styles.field, { color: palette.text, backgroundColor: palette.raised, borderColor: fieldValues.amount ? accent : palette.line, marginBottom: 16 }]} /> : selectedType.name === 'Expense' && item.key === 'account' ? <View style={{ marginBottom: 16 }}>
+                  <Pressable accessibilityRole="button" accessibilityLabel="Select expense account" accessibilityState={{ expanded: accountPickerOpen }} onPress={() => setAccountPickerOpen(true)} style={{ minHeight: 52, padding: 14, borderWidth: 1, borderColor: palette.line, borderRadius: 14, backgroundColor: palette.raised, flexDirection: 'row', alignItems: 'center', gap: 12 }}>
                     <SymbolView name={{ ios: 'creditcard', android: 'credit_card', web: 'credit_card' }} size={22} tintColor={palette.muted} />
                     <Text style={{ flex: 1, color: fieldValues.account ? palette.text : palette.muted }}>{fieldValues.account || 'Select account or payment method'}</Text>
                     <SymbolView name={{ ios: 'chevron.down', android: 'expand_more', web: 'expand_more' }} size={18} tintColor={palette.muted} />
@@ -274,8 +289,8 @@ export default function EntitiesScreen() {
                       </SafeAreaView>
                     </View>
                   </Modal>
-                </View> : selectedType.name === 'Event' && item.key === 'location' ? <TextInput accessibilityLabel="Event location" value={fieldValues.location ?? ''} onChangeText={location => setFieldValues(current => ({ ...current, location }))} placeholder="Add a location" placeholderTextColor={palette.muted} style={[styles.field, { color: palette.text, backgroundColor: palette.panel, borderColor: palette.line, marginBottom: 16 }]} /> : selectedType.name === 'Event' && item.key === 'people' ? <View style={{ marginBottom: 16 }}>
-                  <Pressable accessibilityRole="button" accessibilityLabel="Select event people" accessibilityState={{ expanded: peopleSheetOpen }} onPress={() => { setPeopleQuery(''); setPeopleSheetOpen(true); }} style={{ minHeight: 52, padding: 14, borderWidth: 1, borderColor: palette.line, borderRadius: 14, backgroundColor: palette.panel, flexDirection: 'row', alignItems: 'center', gap: 12 }}>
+                </View> : selectedType.name === 'Event' && item.key === 'location' ? <TextInput accessibilityLabel="Event location" value={fieldValues.location ?? ''} onChangeText={location => setFieldValues(current => ({ ...current, location }))} placeholder="Add a location" placeholderTextColor={palette.muted} style={[styles.field, { color: palette.text, backgroundColor: palette.raised, borderColor: fieldValues.amount ? accent : palette.line, marginBottom: 16 }]} /> : selectedType.name === 'Event' && item.key === 'people' ? <View style={{ marginBottom: 16 }}>
+                  <Pressable accessibilityRole="button" accessibilityLabel="Select event people" accessibilityState={{ expanded: peopleSheetOpen }} onPress={() => { setPeopleQuery(''); setPeopleSheetOpen(true); }} style={{ minHeight: 52, padding: 14, borderWidth: 1, borderColor: palette.line, borderRadius: 14, backgroundColor: palette.raised, flexDirection: 'row', alignItems: 'center', gap: 12 }}>
                     <SymbolView name={{ ios: 'person.2', android: 'group', web: 'group' }} size={22} tintColor={palette.muted} />
                     <Text numberOfLines={2} style={{ flex: 1, color: fieldValues.people ? palette.text : palette.muted }}>{fieldValues.people || 'Select contacts'}</Text>
                     <SymbolView name={{ ios: 'chevron.down', android: 'expand_more', web: 'expand_more' }} size={18} tintColor={palette.muted} />
@@ -327,23 +342,29 @@ export default function EntitiesScreen() {
             ))}
           </View>}
 
-          <Text style={[styles.label, { color: palette.muted }]}>RELATED ITEMS · {relatedIds.length} SELECTED</Text>
-          <TextInput accessibilityLabel="Find related items" value={relationQuery} onChangeText={setRelationQuery} placeholder="Search saved people, goals, trips…" placeholderTextColor={palette.muted} style={[styles.field, { color: palette.text, backgroundColor: palette.panel, borderColor: palette.line }]} />
+          <View style={styles.sectionIntro}>
+            <View style={styles.flex}>
+              <Text style={[styles.sectionIntroTitle, { color: palette.text }]}>Connections</Text>
+              <Text style={[styles.sectionIntroText, { color: palette.muted }]}>Link people, goals, trips, or related records.</Text>
+            </View>
+            {relatedIds.length ? <View style={[styles.countBadge, { backgroundColor: accentSoft }]}><Text style={{ color: accent, fontSize: 11, fontWeight: '700' }}>{relatedIds.length}</Text></View> : null}
+          </View>
+          <TextInput accessibilityLabel="Find related items" value={relationQuery} onChangeText={setRelationQuery} placeholder="Search saved items" placeholderTextColor={palette.muted} style={[styles.field, { color: palette.text, backgroundColor: palette.raised, borderColor: relationQuery ? accent : palette.line }]} />
           <ScrollView style={{ maxHeight: 220, marginBottom: 20 }} nestedScrollEnabled keyboardShouldPersistTaps="handled">
             {saved.filter((item) => item.id !== editing?.id && item.title.toLowerCase().includes(relationQuery.toLowerCase())).map((item) => (
-              <Pressable accessibilityRole="checkbox" accessibilityState={{ checked: relatedIds.includes(item.id) }} key={item.id} onPress={() => setRelatedIds((current) => current.includes(item.id) ? current.filter((id) => id !== item.id) : [...current, item.id])} style={[styles.relationRow, { backgroundColor: palette.panel, borderColor: palette.line }]}>
-                <View style={styles.flex}><Text style={[styles.privacyTitle, { color: palette.text }]}>{item.title}</Text><Text style={[styles.privacyText, { color: palette.muted }]}>{item.kind}{item.deviceOnly ? ' · Device only' : ''}</Text></View><Text style={{ color: '#27B883', fontSize: 21 }}>{relatedIds.includes(item.id) ? '✓' : '+'}</Text>
+              <Pressable accessibilityRole="checkbox" accessibilityState={{ checked: relatedIds.includes(item.id) }} key={item.id} onPress={() => setRelatedIds((current) => current.includes(item.id) ? current.filter((id) => id !== item.id) : [...current, item.id])} style={[styles.relationRow, { backgroundColor: palette.raised, borderColor: relatedIds.includes(item.id) ? accent : palette.line }]}>
+                <View style={styles.flex}><Text style={[styles.privacyTitle, { color: palette.text }]}>{item.title}</Text><Text style={[styles.privacyText, { color: palette.muted }]}>{item.kind}{item.deviceOnly ? ' · Device only' : ''}</Text></View><Text style={{ color: accent, fontSize: 20, fontWeight: '700' }}>{relatedIds.includes(item.id) ? '✓' : '+'}</Text>
               </Pressable>
             ))}
             {!saved.some((item) => item.id !== editing?.id && item.title.toLowerCase().includes(relationQuery.toLowerCase())) ? <Text style={[styles.privateHint, { color: palette.muted }]}>No matching items. Save another item first to connect it here.</Text> : null}
           </ScrollView>
-          <View style={[styles.privacy, { backgroundColor: palette.panel, borderColor: palette.line }]}>
-            <View style={[styles.privacyIcon, { backgroundColor: deviceOnly ? '#18392E' : palette.raised }]}><SymbolView name={{ ios: 'iphone', android: 'smartphone', web: 'smartphone' }} size={20} tintColor={palette.text} /></View>
+          <View style={[styles.privacy, { backgroundColor: deviceOnly ? palette.selected : palette.raised, borderColor: deviceOnly ? palette.accent : palette.line }]}>
+            <View style={[styles.privacyIcon, { backgroundColor: palette.panel }]}><SymbolView name={{ ios: 'lock.shield', android: 'shield_lock', web: 'shield_lock' }} size={19} tintColor={deviceOnly ? palette.accent : palette.text} /></View>
             <View style={styles.flex}>
               <Text style={[styles.privacyTitle, { color: palette.text }]}>Stay only on this device</Text>
               <Text style={[styles.privacyText, { color: palette.muted }]}>When enabled, this item is excluded from cloud sync.</Text>
             </View>
-            <Switch accessibilityLabel="Stay only on this device" value={deviceOnly} onValueChange={setDeviceOnly} trackColor={{ false: '#52605B', true: '#658D35' }} thumbColor="#FFFFFF" />
+            <Switch accessibilityLabel="Stay only on this device" value={deviceOnly} onValueChange={setDeviceOnly} trackColor={{ false: palette.line, true: palette.accent }} thumbColor="#FFFFFF" />
           </View>
           {selectedType.privateByDefault ? <Text style={[styles.privateHint, { color: palette.muted }]}>Sensitive {selectedType.name.toLowerCase()} data starts as device-only. You are always in control.</Text> : null}
 
@@ -352,7 +373,7 @@ export default function EntitiesScreen() {
             onPress={() => void createEntity()}
             style={({ pressed }) => [styles.primary, { backgroundColor: accent }, (!captureTitle || saving) && styles.disabled, pressed && styles.pressed]}
           >
-            {saving ? <ActivityIndicator color="#06140F" /> : <Text style={styles.primaryText}>{editing ? 'Save changes' : selectedType.name === 'Mood Log' ? 'Save mood' : selectedType.name === 'Workout' ? 'Save workout' : `Create ${selectedType.name}`}</Text>}
+            {saving ? <ActivityIndicator color={palette.onAccent} /> : <Text style={[styles.primaryText, { color: palette.onAccent }]}>{editing ? 'Save changes' : selectedType.name === 'Mood Log' ? 'Save mood' : selectedType.name === 'Workout' ? 'Save workout' : `Create ${selectedType.name}`}</Text>}
           </Pressable>
         </ScrollView>
       </SafeAreaView>
@@ -362,12 +383,14 @@ export default function EntitiesScreen() {
   if (screen === 'detail' && selectedEntity) {
     const definition = definitionFor(selectedEntity);
     const ownedAsset = saved.find(item => item.metadata.entityType === 'Asset' && item.relatedIds?.includes(selectedEntity.id));
-    const accent = groupAccent[String(selectedEntity.metadata.group)] ?? '#50D39A';
+    const detailGroupColor = matrixGroupColor(String(selectedEntity.metadata.group), appearance);
+    const accent = detailGroupColor.accent;
+    const accentSoft = detailGroupColor.soft;
     return (
       <SafeAreaView style={[styles.safe, { backgroundColor: palette.bg }]} edges={['top']}>
         <ScrollView contentContainerStyle={styles.formWrap}>
           <Header title={String(selectedEntity.metadata.entityType ?? definition?.name ?? 'Item')} onBack={returnToPreviousScreen} palette={palette} />
-          <View style={[styles.detailCard, { backgroundColor: palette.panel, borderColor: palette.line }]}>
+          <View style={[styles.detailCard, { backgroundColor: accentSoft, borderColor: accent }]}>
             <View style={[styles.detailGlyph, { backgroundColor: `${accent}22` }]}><EntityIcon type={definition?.name ?? ''} color={accent} size={30} /></View>
             <Text style={[styles.detailTitle, { color: palette.text }]}>{selectedEntity.title}</Text>
             <Text style={[styles.detailMeta, { color: palette.muted }]}>{String(selectedEntity.metadata.group ?? 'Life')} · Updated {new Date(selectedEntity.updatedAt).toLocaleDateString()}</Text>
@@ -398,7 +421,7 @@ export default function EntitiesScreen() {
             </View>
           </View>
           <Text style={[styles.sectionTitle, { color: palette.text, marginTop: 24 }]}>Related</Text>
-          {relatedEntities(selectedEntity, saved).map((item) => <Pressable accessibilityRole="button" key={item.id} onPress={() => openDetail(item)} style={[styles.relationRow, { backgroundColor: palette.panel, borderColor: palette.line }]}><View style={styles.flex}><Text style={[styles.privacyTitle, { color: palette.text }]}>{item.title}</Text><Text style={[styles.privacyText, { color: palette.muted }]}>{item.kind}{item.deviceOnly ? ' · Device only' : ''}</Text></View><Text style={{ color: palette.muted }}>›</Text></Pressable>)}
+          {relatedEntities(selectedEntity, saved).map((item) => <Pressable accessibilityRole="button" key={item.id} onPress={() => openDetail(item)} style={[styles.relationRow, { backgroundColor: palette.raised, borderColor: relatedIds.includes(item.id) ? accent : palette.line }]}><View style={styles.flex}><Text style={[styles.privacyTitle, { color: palette.text }]}>{item.title}</Text><Text style={[styles.privacyText, { color: palette.muted }]}>{item.kind}{item.deviceOnly ? ' · Device only' : ''}</Text></View><Text style={{ color: palette.muted }}>›</Text></Pressable>)}
           {!relatedEntities(selectedEntity, saved).length ? <Text style={[styles.privateHint, { color: palette.muted }]}>Edit this item to connect people, goals, plans, and more.</Text> : null}
           <Pressable onPress={() => startCreate(definition ?? entityCatalog[0])} style={[styles.secondary, { borderColor: palette.line, backgroundColor: palette.panel }]}><Text style={[styles.secondaryText, { color: palette.text }]}>Create another</Text></Pressable>
           {definition ? <Pressable onPress={() => editEntity(selectedEntity)} style={[styles.secondary, { borderColor: palette.line, backgroundColor: palette.panel }]}><Text style={[styles.secondaryText, { color: palette.text }]}>Edit item</Text></Pressable> : null}
@@ -431,10 +454,10 @@ const styles = StyleSheet.create({
   safe: { flex: 1 },
   relationRow: { flexDirection: 'row', alignItems: 'center', gap: 14, borderRadius: 15, borderWidth: 1, padding: 14, marginTop: 8, minHeight: 58 },
   wrap: { padding: 20, paddingBottom: 120 },
-  formWrap: { padding: 20, paddingBottom: 130 },
+  formWrap: { paddingHorizontal: 20, paddingTop: 12, paddingBottom: 130, maxWidth: 720, width: '100%', alignSelf: 'center' },
   flex: { flex: 1 },
   titleRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-  title: { fontSize: 34, fontWeight: '900', letterSpacing: -1.2 },
+  title: { fontSize: 34, fontWeight: '700', letterSpacing: -1.1 },
   sub: { fontSize: 13, marginTop: 2 },
   totalBadge: { borderRadius: 20, paddingHorizontal: 12, paddingVertical: 7 },
   totalText: { fontSize: 11, fontWeight: '800' },
@@ -467,33 +490,33 @@ const styles = StyleSheet.create({
   header: { flexDirection: 'row', alignItems: 'center', height: 44, marginBottom: 20 },
   backButton: { width: 44, height: 44, justifyContent: 'center' },
   backText: { fontSize: 36, lineHeight: 38 },
-  headerTitle: { flex: 1, textAlign: 'center', fontSize: 17, fontWeight: '900' },
+  headerTitle: { flex: 1, textAlign: 'center', fontSize: 17, fontWeight: '650' as '600' },
   headerSpacer: { width: 44 },
-  typeHero: { flexDirection: 'row', alignItems: 'center', borderRadius: 22, padding: 18, borderWidth: 1, marginBottom: 25 },
-  captureTabs: { flexDirection: 'row', padding: 4, borderWidth: 1, borderRadius: 8, marginBottom: 24 },
-  captureTab: { flex: 1, minHeight: 44, alignItems: 'center', justifyContent: 'center', borderRadius: 5 },
-  heroIcon: { width: 50, height: 50, borderRadius: 16, alignItems: 'center', justifyContent: 'center', marginRight: 14 },
+  typeHero: { flexDirection: 'row', alignItems: 'center', borderRadius: 24, padding: 18, borderWidth: 1, marginBottom: 22, gap: 12 },
+  captureTabs: { flexDirection: 'row', padding: 4, borderWidth: 1, borderRadius: 14, marginBottom: 20 },
+  captureTab: { flex: 1, minHeight: 42, alignItems: 'center', justifyContent: 'center', borderRadius: 11 },
+  heroIcon: { width: 48, height: 48, borderRadius: 15, alignItems: 'center', justifyContent: 'center' },
   heroIconText: { fontSize: 23, fontWeight: '900' },
-  heroTitle: { fontSize: 20, fontWeight: '900' },
+  heroTitle: { fontSize: 20, fontWeight: '700', letterSpacing: -0.3 },
   heroSub: { fontSize: 13, marginTop: 4 },
-  label: { fontSize: 12, fontWeight: '900', letterSpacing: 1.1, marginBottom: 8, marginLeft: 4 },
-  field: { borderWidth: 1, borderRadius: 16, paddingHorizontal: 15, minHeight: 50, fontSize: 14, marginBottom: 20 },
+  label: { fontSize: 12, fontWeight: '600', letterSpacing: 0.1, marginBottom: 8, marginLeft: 2 },
+  field: { borderWidth: 1, borderRadius: 16, paddingHorizontal: 15, minHeight: 54, fontSize: 15, marginBottom: 18 },
   details: { minHeight: 132, paddingTop: 15, textAlignVertical: 'top' },
   dynamicGrid: { flexDirection: 'row', flexWrap: 'wrap', columnGap: 10 },
   dynamicItem: { width: '100%' },
   dynamicField: { marginBottom: 16 },
   privacy: { flexDirection: 'row', alignItems: 'center', borderRadius: 19, borderWidth: 1, padding: 14, gap: 12 },
   privacyIcon: { width: 38, height: 38, borderRadius: 13, alignItems: 'center', justifyContent: 'center' },
-  privacyTitle: { fontSize: 13, fontWeight: '900' },
+  privacyTitle: { fontSize: 13.5, fontWeight: '600' },
   privacyText: { fontSize: 12, lineHeight: 18, marginTop: 3 },
   privateHint: { fontSize: 10, lineHeight: 15, margin: 12 },
-  primary: { height: 54, borderRadius: 18, alignItems: 'center', justifyContent: 'center', marginTop: 24 },
-  primaryText: { color: '#06140F', fontSize: 15, fontWeight: '900' },
+  primary: { height: 56, borderRadius: 18, alignItems: 'center', justifyContent: 'center', marginTop: 26 },
+  primaryText: { fontSize: 15, fontWeight: '700' },
   disabled: { opacity: 0.4 },
   detailCard: { borderRadius: 24, borderWidth: 1, padding: 22, alignItems: 'center' },
   detailGlyph: { width: 68, height: 68, borderRadius: 22, alignItems: 'center', justifyContent: 'center' },
   detailGlyphText: { fontSize: 30, fontWeight: '900' },
-  detailTitle: { fontSize: 25, fontWeight: '900', textAlign: 'center', marginTop: 17 },
+  detailTitle: { fontSize: 25, fontWeight: '700', textAlign: 'center', marginTop: 17, letterSpacing: -0.5 },
   detailMeta: { fontSize: 11, marginTop: 6 },
   detailBody: { width: '100%', fontSize: 14, lineHeight: 21, marginTop: 22, paddingTop: 19, borderTopWidth: 1 },
   attributeList: { width: '100%', marginTop: 20, paddingTop: 12, borderTopWidth: 1 },
@@ -502,10 +525,19 @@ const styles = StyleSheet.create({
   attributeValue: { flex: 1, textAlign: 'right', fontSize: 11, fontWeight: '700' },
   statusRow: { flexDirection: 'row', alignItems: 'center', gap: 12, borderRadius: 19, borderWidth: 1, padding: 15, marginTop: 14 },
   statusIcon: { fontSize: 24, fontWeight: '900' },
-  statusTitle: { fontSize: 13, fontWeight: '900' },
+  statusTitle: { fontSize: 13, fontWeight: '600' },
   statusSub: { fontSize: 10, lineHeight: 14, marginTop: 3 },
   secondary: { height: 50, borderRadius: 17, borderWidth: 1, alignItems: 'center', justifyContent: 'center', marginTop: 22 },
-  secondaryText: { fontSize: 13, fontWeight: '900' },
+  secondaryText: { fontSize: 13, fontWeight: '600' },
   deleteButton: { height: 48, alignItems: 'center', justifyContent: 'center', marginTop: 8 },
-  deleteText: { color: '#FF6676', fontSize: 12, fontWeight: '800' },
+  deleteText: { color: '#FF6676', fontSize: 12, fontWeight: '700' },
+  heroField: { minHeight: 60, paddingHorizontal: 16, marginBottom: 18, borderWidth: 1.5, borderRadius: 18, fontSize: 18, fontWeight: '600', letterSpacing: -0.2 },
+  notesField: { minHeight: 118, paddingHorizontal: 15, paddingTop: 14, paddingBottom: 14, marginBottom: 20, borderWidth: 1, borderRadius: 18, fontSize: 14.5, lineHeight: 22 },
+  contextBadge: { minHeight: 30, borderRadius: 15, paddingHorizontal: 10, flexDirection: 'row', alignItems: 'center', gap: 6 },
+  contextDot: { width: 6, height: 6, borderRadius: 3 },
+  contextText: { fontSize: 10.5, fontWeight: '700' },
+  sectionIntro: { flexDirection: 'row', alignItems: 'center', gap: 12, marginTop: 8, marginBottom: 10 },
+  sectionIntroTitle: { fontSize: 16, fontWeight: '650' as '600' },
+  sectionIntroText: { fontSize: 11.5, lineHeight: 17, marginTop: 2 },
+  countBadge: { minWidth: 30, height: 30, borderRadius: 15, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 8 },
 });
