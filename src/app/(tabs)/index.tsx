@@ -185,15 +185,17 @@ export default function HomeScreen() {
             { label: 'On device', value: privateCount, icon: 'shield_lock', ios: 'lock.shield', tone: p.violet },
             { label: 'Life areas', value: dashboard.groupTrends.length, icon: 'grid_view', ios: 'square.grid.2x2', tone: p.cyan },
           ].map((item, index) => (
-            <MotionReveal key={item.label} delay={50 + index * 35}>
-              <View style={[s.stat, { backgroundColor: p.card }]}>
+            <View key={item.label} style={[s.statCell, { width: compact ? '48.6%' : '24%' }]}>
+              <MotionReveal delay={50 + index * 35}>
+                <View style={[s.stat, { backgroundColor: p.card }]}>
                 <View style={[s.statIcon, { backgroundColor: p.raised }]}>
-                  <SymbolView name={{ ios: item.ios, android: item.icon, web: item.icon }} size={18} tintColor={item.tone} />
+                  <SymbolView name={{ ios: item.ios as never, android: item.icon as never, web: item.icon as never }} size={18} tintColor={item.tone} />
                 </View>
                 <Text style={[s.statValue, { color: p.text }]}>{item.value}</Text>
                 <Text style={[s.statLabel, { color: p.muted }]}>{item.label}</Text>
-              </View>
-            </MotionReveal>
+                </View>
+              </MotionReveal>
+            </View>
           ))}
         </View>
 
@@ -411,7 +413,8 @@ const s = StyleSheet.create({
   heroMetricLabel: { fontSize: 9.5, marginTop: 1 },
 
   statGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 9, marginTop: 10 },
-  stat: { width: '100%', minWidth: 140, borderRadius: 18, padding: 14 },
+  statCell: { minWidth: 0 },
+  stat: { minHeight: 132, borderRadius: 18, padding: 14 },
   statIcon: { width: 34, height: 34, borderRadius: 11, alignItems: 'center', justifyContent: 'center' },
   statValue: { fontSize: 23, fontWeight: '700', letterSpacing: -0.6, marginTop: 14 },
   statLabel: { fontSize: 11, marginTop: 2 },
@@ -422,7 +425,7 @@ const s = StyleSheet.create({
   sectionLink: { fontSize: 12.5, fontWeight: '600' },
 
   distribution: { borderRadius: 24, padding: 18, flexDirection: 'row', alignItems: 'center', gap: 18 },
-  distributionCompact: { alignItems: 'stretch' },
+  distributionCompact: { flexDirection: 'column', alignItems: 'center' },
   areaList: { flex: 1, gap: 9 },
   areaRow: { flexDirection: 'row', alignItems: 'center', gap: 10 },
   areaIcon: { width: 28, height: 28, borderRadius: 9, alignItems: 'center', justifyContent: 'center' },
