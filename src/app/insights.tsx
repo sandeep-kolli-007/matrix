@@ -1,5 +1,5 @@
 import { useCallback, useMemo, useState } from 'react';
-import { Pressable, RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Pressable, RefreshControl, ScrollView, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
 import { router, useFocusEffect } from 'expo-router';
 import { SymbolView } from 'expo-symbols';
 
@@ -19,6 +19,8 @@ import { useLifeOS } from '@/providers/lifeos-provider';
 
 export default function InsightsScreen() {
   const { appearance } = useLifeOS();
+  const { width } = useWindowDimensions();
+  const compact = width < 600;
   const p = matrixTheme(appearance);
   const [items, setItems] = useState<LifeEntity[]>([]);
   const [loading, setLoading] = useState(false);
@@ -91,7 +93,7 @@ export default function InsightsScreen() {
         <>
           <MotionReveal>
             <SpatialStage intensity={0.8}>
-              <PremiumSurface style={[s.hero, { backgroundColor: p.panel, borderColor: p.line }]}>
+              <PremiumSurface style={[s.hero, compact && s.heroCompact, { backgroundColor: p.panel, borderColor: p.line }]}>
                 <View style={s.heroCopy}>
                   <Text style={[s.kicker, { color: p.accent }]}>MATRIX SIGNAL</Text>
                   <Text style={[s.heroTitle, { color: p.text }]}>Life Pulse</Text>
@@ -113,8 +115,8 @@ export default function InsightsScreen() {
                     </View>
                   </View>
                 </View>
-                <View style={s.heroOrb}>
-                  <LifeOrb score={metrics.pulse} palette={p} size={160} />
+                <View style={[s.heroOrb, compact && s.heroOrbCompact]}>
+                  <LifeOrb score={metrics.pulse} palette={p} size={compact ? 142 : 160} />
                 </View>
               </PremiumSurface>
             </SpatialStage>
@@ -238,6 +240,7 @@ const s = StyleSheet.create({
   tabText: { fontSize: 13, fontWeight: '600' },
   hero: { minHeight: 260, borderRadius: 28, borderWidth: 1, padding: 22, flexDirection: 'row', overflow: 'hidden' },
   heroCopy: { flex: 1, justifyContent: 'center' },
+  heroCompact: { flexDirection: 'column', minHeight: 0 },
   kicker: { fontSize: 10, fontWeight: '700', letterSpacing: 1.1 },
   heroTitle: { fontSize: 29, lineHeight: 34, fontWeight: '700', letterSpacing: -0.8, marginTop: 7 },
   heroBody: { fontSize: 12.5, lineHeight: 19, marginTop: 8, maxWidth: 430 },
@@ -245,6 +248,7 @@ const s = StyleSheet.create({
   factValue: { fontSize: 20, fontWeight: '700', fontVariant: ['tabular-nums'] },
   factLabel: { fontSize: 10.5, marginTop: 2 },
   heroOrb: { width: 184, alignItems: 'center', justifyContent: 'center' },
+  heroOrbCompact: { width: '100%', marginTop: 14 },
   metricGrid: { flexDirection: 'row', gap: 12 },
   metricCard: { flex: 1, minHeight: 164, borderRadius: 18, borderWidth: 1, padding: 17 },
   metricIcon: { width: 38, height: 38, borderRadius: 12, alignItems: 'center', justifyContent: 'center' },
