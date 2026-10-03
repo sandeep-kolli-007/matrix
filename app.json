@@ -8,7 +8,7 @@
     "scheme": "matrix",
     "userInterfaceStyle": "automatic",
     "ios": {
-      "icon": "./assets/expo.icon",
+      "icon": "./assets/images/icon.png",
       "bundleIdentifier": "com.sandeepkolli.matrix",
       "infoPlist": {
         "ITSAppUsesNonExemptEncryption": false
@@ -16,7 +16,7 @@
     },
     "android": {
       "adaptiveIcon": {
-        "backgroundColor": "#E6F4FE",
+        "backgroundColor": "#0B0D10",
         "foregroundImage": "./assets/images/android-icon-foreground.png",
         "backgroundImage": "./assets/images/android-icon-background.png",
         "monochromeImage": "./assets/images/android-icon-monochrome.png"
@@ -31,7 +31,7 @@
       "name": "MATRIX",
       "shortName": "MATRIX",
       "lang": "en",
-      "themeColor": "#080D0C",
+      "themeColor": "#0B0D10",
       "description": "MATRIX — your personal operating system."
     },
     "plugins": [
@@ -39,9 +39,7 @@
       [
         "expo-splash-screen",
         {
-          "backgroundColor": "#208AEF",
-          "image": "./assets/images/splash-icon.png",
-          "imageWidth": 76
+          "backgroundColor": "#0B0D10"
         }
       ],
       "@react-native-community/datetimepicker"
