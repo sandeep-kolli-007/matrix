@@ -65,7 +65,6 @@ export function EntityDatePicker({ mode, value, label, onChange }: {
           <SymbolView name={{ ios: mode === 'date' ? 'calendar' : 'clock', android: mode === 'date' ? 'calendar_today' : 'schedule', web: mode === 'date' ? 'calendar_today' : 'schedule' }} size={16} tintColor={p.accent} />
         </View>
         <View style={{ flex: 1 }}>
-          <Text style={{ color: p.muted, fontSize: 10.5, fontWeight: '600', marginBottom: 2 }}>{label}</Text>
           <Text style={{ color: value ? p.text : p.muted, fontSize: 15, fontWeight: value ? '600' : '500' }}>
             {value || (mode === 'date' ? 'Choose date' : 'Choose time')}
           </Text>
