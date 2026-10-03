@@ -18,6 +18,7 @@ vm.runInNewContext(code, { exports: exportsObject, require(name) {
   };
   if (name === 'react-native') return { Alert: { alert() { alerts++; } }, Pressable: 'Pressable', ScrollView: 'ScrollView', Text: 'Text', View: 'View', StyleSheet: { create: x => x } };
   if (name === 'react-native-safe-area-context') return { SafeAreaView: 'SafeAreaView' };
+  if (name === 'expo-symbols') return { SymbolView: 'SymbolView' };
   if (name.includes('lifeos-provider')) return { useLifeOS: () => ({ appearance,
     completeOnboarding: async () => { if (fail) throw Error('storage failed'); completed++; },
     toggleAppearance: async () => { appearance = appearance === 'dark' ? 'light' : 'dark'; },
@@ -38,10 +39,10 @@ function press(tree, text) {
     press(render(), 'Back'); assert.equal(slots[0], 0);
     press(render(), 'Continue'); press(render(), 'Continue');
     assert.equal(slots[0], 2); assert.equal(completed, 0);
-    fail = true; press(render(), 'Get started');
+    fail = true; press(render(), 'Start using MATRIX');
     await new Promise(resolve => setImmediate(resolve));
     assert.equal(alerts, 1); assert.equal(completed, 0); assert.equal(slots[1], false);
-    fail = false; const finalStep = render(); press(finalStep, 'Get started'); press(finalStep, 'Get started');
+    fail = false; const finalStep = render(); press(finalStep, 'Start using MATRIX'); press(finalStep, 'Start using MATRIX');
     await new Promise(resolve => setImmediate(resolve));
     assert.equal(completed, 1, 'rapid double tap must save only once');
   }
