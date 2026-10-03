@@ -57,12 +57,9 @@ export function TapValue({ label, value, onChange, options = [], numeric, intege
             <SymbolView name={{ ios: 'slider.horizontal.3', android: 'tune', web: 'tune' }} size={16} tintColor={value ? accent : p.muted} />
           </View>
         ) : null}
-        <View style={{ flex: 1 }}>
-          {!compact ? <Text style={{ color: p.muted, fontSize: 10.5, fontWeight: '600', marginBottom: 2 }}>{label}</Text> : null}
-          <Text style={{ color: value ? p.text : p.muted, textAlign: compact ? 'center' : 'left', fontSize: compact ? 18 : 15, lineHeight: 21, fontWeight: value ? '600' : '500' }}>
-            {value || (compact ? '—' : 'Choose')}
-          </Text>
-        </View>
+        <Text style={{ flex: 1, color: value ? p.text : p.muted, textAlign: compact ? 'center' : 'left', fontSize: compact ? 18 : 15, lineHeight: 21, fontWeight: value ? '600' : '500' }}>
+          {value || (compact ? '—' : `Choose ${label.toLowerCase()}`)}
+        </Text>
         {compact ? null : <SymbolView name={{ ios: 'chevron.down', android: 'expand_more', web: 'expand_more' }} size={16} tintColor={value ? accent : p.muted} />}
       </Pressable>
 
