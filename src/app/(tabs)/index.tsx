@@ -1,5 +1,5 @@
 import { useCallback, useMemo, useRef, useState } from 'react';
-import { FlatList, StyleSheet, Text, View } from 'react-native';
+import { FlatList, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { SymbolView } from 'expo-symbols';
 import { router, useFocusEffect } from 'expo-router';
@@ -26,6 +26,8 @@ const quick = [
 
 export default function HomeScreen() {
   const { appearance } = useLifeOS();
+  const { width } = useWindowDimensions();
+  const compact = width < 600;
   const p = matrixTheme(appearance);
   const [items, setItems] = useState<LifeEntity[]>([]);
   const [loading, setLoading] = useState(true);
@@ -98,7 +100,7 @@ export default function HomeScreen() {
 
             <MotionReveal>
               <Pressable accessibilityRole="button" accessibilityLabel="Open insights" onPress={() => router.push('/insights')}>
-                <PremiumSurface style={[s.pulseCard, { backgroundColor: p.panel, borderColor: p.line }]}>
+                <PremiumSurface style={[s.pulseCard, compact && s.pulseCardCompact, { backgroundColor: p.panel, borderColor: p.line }]}>
                   <View style={s.pulseCopy}>
                     <View style={s.pulseHeadingRow}>
                       <View style={s.flex}>
@@ -131,8 +133,8 @@ export default function HomeScreen() {
                       </View>
                     </View>
                   </View>
-                  <View style={s.orbColumn}>
-                    <LifeOrb score={visuals.pulse} palette={p} size={136} />
+                  <View style={[s.orbColumn, compact && s.orbColumnCompact]}>
+                    <LifeOrb score={visuals.pulse} palette={p} size={compact ? 124 : 136} />
                   </View>
                 </PremiumSurface>
               </Pressable>
@@ -253,6 +255,7 @@ const s = StyleSheet.create({
   iconButton: { width: 44, height: 44, borderRadius: 22, borderWidth: 1, alignItems: 'center', justifyContent: 'center' },
   pulseCard: { minHeight: 236, borderRadius: 26, borderWidth: 1, padding: 20, flexDirection: 'row', overflow: 'hidden' },
   pulseCopy: { flex: 1, minWidth: 0 },
+  pulseCardCompact: { flexDirection: 'column', minHeight: 0 },
   pulseHeadingRow: { flexDirection: 'row', alignItems: 'flex-start', gap: 10 },
   kicker: { fontSize: 10, fontWeight: '700', letterSpacing: 1.1 },
   pulseTitle: { fontSize: 20, lineHeight: 26, fontWeight: '700', letterSpacing: -0.35, marginTop: 6 },
@@ -265,6 +268,7 @@ const s = StyleSheet.create({
   pulseStatValue: { fontSize: 16, fontWeight: '700', fontVariant: ['tabular-nums'] },
   pulseStatLabel: { fontSize: 10.5, marginTop: 2 },
   orbColumn: { width: 150, alignItems: 'center', justifyContent: 'center', marginLeft: 8 },
+  orbColumnCompact: { width: '100%', marginLeft: 0, marginTop: 10 },
   taskCard: { borderRadius: 18, borderWidth: 1, padding: 18, marginTop: 12 },
   taskCardTop: { flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between' },
   taskTitle: { fontSize: 17, fontWeight: '600', marginTop: 5 },
