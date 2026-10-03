@@ -10,9 +10,12 @@ import { HapticPressable as Pressable } from '@/components/haptic-pressable';
 import { PremiumSurface } from '@/components/premium-surface';
 import { useRecords } from '@/components/use-records';
 import { entityCatalog, entityGroups } from '@/data/entity-catalog';
+import { matrixGroupColor } from '@/data/matrix-theme';
+import { useLifeOS } from '@/providers/lifeos-provider';
 
 export default function Matrix() {
   const { items, loading, error, reload, p } = useRecords();
+  const { appearance } = useLifeOS();
   const { width } = useWindowDimensions();
   const compact = width < 600;
   const [type, setType] = useState<string | null>(null);
@@ -45,12 +48,14 @@ export default function Matrix() {
         title: item.title,
         sub: `${String(item.metadata.entityType ?? item.kind)} · ${new Date(item.updatedAt).toLocaleDateString()}`,
         record: true,
+        group: String(item.metadata.group ?? 'Other'),
       }))
     : categories.map(item => ({
         id: item.name,
         title: item.name,
         sub: `${counts.get(kind(item.name)) ?? 0} saved · ${item.group}`,
         record: false,
+        group: item.group,
       }));
 
   return (
@@ -109,7 +114,7 @@ export default function Matrix() {
               </MotionReveal>
             ) : null}
 
-            <View style={[s.search, { backgroundColor: p.panel, borderColor: p.line }]}>
+            <View style={[s.search, { backgroundColor: p.raised, borderColor: query ? p.accent : p.line }]}>
               <SymbolView name={{ ios: 'magnifyingglass', android: 'search', web: 'search' }} size={18} tintColor={p.muted} />
               <TextInput
                 accessibilityLabel="Search Matrix"
@@ -175,7 +180,9 @@ export default function Matrix() {
             {!loading ? <Text style={[s.emptyText, { color: p.muted }]}>Try a different search or add something new.</Text> : null}
           </View>
         }
-        renderItem={({ item, index }) => (
+        renderItem={({ item, index }) => {
+          const domain = matrixGroupColor(item.group, appearance);
+          return (
           <MotionReveal delay={Math.min(index, 7) * 30}>
             <Pressable
               accessibilityRole="button"
@@ -186,10 +193,10 @@ export default function Matrix() {
                   setQuery('');
                 }
               }}
-              style={[s.row, { backgroundColor: p.panel, borderColor: p.line }]}
+              style={[s.row, { backgroundColor: item.record ? p.panel : domain.soft, borderColor: p.line }]}
             >
-              <View style={[s.rowIcon, { backgroundColor: p.raised }]}>
-                <EntityIcon type={item.record ? String(items.find(record => record.id === item.id)?.metadata.entityType ?? '') : item.title} color={p.accent} size={22} />
+              <View style={[s.rowIcon, { backgroundColor: p.panel }]}>
+                <EntityIcon type={item.record ? String(items.find(record => record.id === item.id)?.metadata.entityType ?? '') : item.title} color={domain.accent} size={22} />
               </View>
               <View style={s.flex}>
                 <Text numberOfLines={1} style={[s.rowTitle, { color: p.text }]}>{item.title}</Text>
@@ -198,7 +205,8 @@ export default function Matrix() {
               <SymbolView name={{ ios: 'chevron.right', android: 'chevron_right', web: 'chevron_right' }} size={15} tintColor={p.muted} />
             </Pressable>
           </MotionReveal>
-        )}
+          );
+        }}
       />
     </SafeAreaView>
   );
