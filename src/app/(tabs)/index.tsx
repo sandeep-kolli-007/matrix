@@ -5,9 +5,9 @@ import { SymbolView } from 'expo-symbols';
 import { router, useFocusEffect } from 'expo-router';
 
 import { EntityIcon } from '@/components/entity-icon';
+import { MatrixLottie } from '@/components/matrix-lottie';
 import { HapticPressable as Pressable } from '@/components/haptic-pressable';
 import {
-  AmbientMatrixAnimation,
   DonutDistribution,
   MicroBars,
   MotionReveal,
@@ -163,7 +163,9 @@ export default function HomeScreen() {
             </View>
 
             <View style={[s.heroMotion, compact && s.heroMotionCompact, { backgroundColor: p.subtle }]}>
-              <AmbientMatrixAnimation palette={p} height={118} />
+              <View style={s.lottieWrap}>
+                <MatrixLottie size={compact ? 116 : 132} />
+              </View>
               <View style={s.heroMetrics}>
                 <View>
                   <Text style={[s.heroMetric, { color: p.text }]}>{items.length}</Text>
@@ -408,6 +410,7 @@ const s = StyleSheet.create({
   axisText: { fontSize: 9.5 },
   heroMotion: { width: 190, borderRadius: 22, padding: 14, justifyContent: 'space-between' },
   heroMotionCompact: { width: '100%' },
+  lottieWrap: { alignItems: 'center', justifyContent: 'center', minHeight: 118 },
   heroMetrics: { flexDirection: 'row', justifyContent: 'space-between', gap: 12 },
   heroMetric: { fontSize: 22, fontWeight: '700', letterSpacing: -0.6 },
   heroMetricLabel: { fontSize: 9.5, marginTop: 1 },
