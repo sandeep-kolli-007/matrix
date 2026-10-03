@@ -1,65 +1,117 @@
 import { useRef, useState } from 'react';
 import { Alert, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { SymbolView } from 'expo-symbols';
+
+import { matrixTheme } from '@/data/matrix-theme';
 import { useLifeOS } from '@/providers/lifeos-provider';
 
 const steps = [
-  { title: 'Your life, connected.', body: 'Organize what matters, see the relationships, and bring your plans, people, and everyday moments together.', symbol: '✦', cardTitle: 'One place for what matters', cardCopy: 'Create tasks, habits, notes, trips, and more. Link related records so their context stays together.' },
-  { title: 'Your data. Your choice.', body: 'Choose “Stay only on this device” when creating a private record. You can review its privacy setting in the detail screen.', symbol: '⌾', cardTitle: 'Know where your data lives', cardCopy: 'New records are currently saved locally. Cloud sync and message delivery are not yet available; saved messages are local drafts.' },
-  { title: 'Make MATRIX yours.', body: 'Choose light or dark with the theme button above. Your choice is saved, and you can change it later in Settings.', symbol: '◐', cardTitle: 'Start with one thing', cardCopy: 'Use Quick Add to capture something, Life to find it, and Home to see what needs your attention.' },
+  {
+    title: 'Everything in one place',
+    body: 'Keep tasks, people, plans, health logs, money, notes and more in one system.',
+    icon: { ios: 'square.grid.2x2', android: 'grid_view', web: 'grid_view' },
+    points: ['Capture in a few taps', 'Link related items', 'Find everything later'],
+  },
+  {
+    title: 'You control your data',
+    body: 'Choose what stays on this device and always see where a record came from.',
+    icon: { ios: 'lock.shield', android: 'shield_lock', web: 'shield_lock' },
+    points: ['On-device privacy option', 'Clear source labels', 'No hidden uploads'],
+  },
+  {
+    title: 'Start with today',
+    body: 'Use Home for what matters now, Timeline for history, and Matrix for the full library.',
+    icon: { ios: 'checkmark.circle', android: 'check_circle', web: 'check_circle' },
+    points: ['Review your day', 'Add as you go', 'Organize when you need to'],
+  },
 ] as const;
 
 export function Onboarding() {
   const { appearance, completeOnboarding, toggleAppearance } = useLifeOS();
+  const p = matrixTheme(appearance);
   const [step, setStep] = useState(0);
   const [busy, setBusy] = useState(false);
   const pending = useRef(false);
   const scroll = useRef<ScrollView>(null);
-  const dark = appearance === 'dark';
   const current = steps[step];
-  const text = { color: dark ? '#F3F7F4' : '#183027' };
-  const secondary = { color: dark ? '#ABBAB0' : '#596D61' };
+
   const changeStep = (next: number) => {
     setStep(next);
     scroll.current?.scrollTo({ y: 0, animated: false });
   };
+
   async function save(action: () => Promise<void>) {
     if (pending.current) return;
     pending.current = true;
     setBusy(true);
-    try { await action(); }
-    catch { Alert.alert('Could not save', 'Your preferences were not changed. Please try again.'); }
-    finally { pending.current = false; setBusy(false); }
+    try {
+      await action();
+    } catch {
+      Alert.alert('Could not save', 'Your preferences were not changed. Please try again.');
+    } finally {
+      pending.current = false;
+      setBusy(false);
+    }
   }
+
   return (
-    <SafeAreaView style={[styles.safe, { backgroundColor: dark ? '#0A0D0B' : '#F8FAF8' }]}>
-      <View style={styles.top}>
-        <Text style={[styles.logo, text]}>MATRIX</Text>
-        <Pressable accessibilityRole="button" accessibilityLabel={dark ? 'Switch to light theme' : 'Switch to dark theme'} disabled={busy}
-          onPress={() => void save(toggleAppearance)} style={[styles.theme, { backgroundColor: dark ? '#202823' : '#E9F1EC' }]}>
-          <Text style={[styles.themeText, text]}>{dark ? '☀' : '◐'}</Text>
+    <SafeAreaView style={[s.safe, { backgroundColor: p.bg }]}>
+      <View style={s.top}>
+        <Text style={[s.brand, { color: p.text }]}>MATRIX</Text>
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel={appearance === 'dark' ? 'Switch to light theme' : 'Switch to dark theme'}
+          disabled={busy}
+          onPress={() => void save(toggleAppearance)}
+          style={[s.themeButton, { backgroundColor: p.panel, borderColor: p.line }]}
+        >
+          <SymbolView
+            name={{ ios: appearance === 'dark' ? 'sun.max' : 'moon', android: appearance === 'dark' ? 'light_mode' : 'dark_mode', web: appearance === 'dark' ? 'light_mode' : 'dark_mode' }}
+            size={19}
+            tintColor={p.text}
+          />
         </Pressable>
       </View>
-      <ScrollView ref={scroll} contentContainerStyle={styles.content}>
-        <View style={styles.art} accessible={false} accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
-          <View style={[styles.orbit, { borderColor: dark ? '#2C4839' : '#CADFD1' }]} />
-          <View style={styles.core}><Text style={styles.coreText}>{current.symbol}</Text></View>
+
+      <ScrollView ref={scroll} contentContainerStyle={s.content} showsVerticalScrollIndicator={false}>
+        <View style={[s.icon, { backgroundColor: p.selected }]}>
+          <SymbolView name={current.icon} size={34} tintColor={p.accent} />
         </View>
-        <Text accessibilityRole="header" style={[styles.title, text]}>{current.title}</Text>
-        <Text style={[styles.body, secondary]}>{current.body}</Text>
-        <View style={[styles.card, { backgroundColor: dark ? '#17241D' : '#ECF6EF' }]}>
-          <Text style={[styles.cardTitle, text]}>{current.cardTitle}</Text>
-          <Text style={[styles.cardCopy, secondary]}>{current.cardCopy}</Text>
+
+        <Text accessibilityRole="header" style={[s.title, { color: p.text }]}>{current.title}</Text>
+        <Text style={[s.body, { color: p.muted }]}>{current.body}</Text>
+
+        <View style={[s.card, { backgroundColor: p.panel, borderColor: p.line }]}>
+          {current.points.map((point, index) => (
+            <View key={point} style={[s.point, index > 0 && { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: p.line }]}>
+              <View style={[s.check, { backgroundColor: p.selected }]}>
+                <SymbolView name={{ ios: 'checkmark', android: 'check', web: 'check' }} size={13} tintColor={p.accent} />
+              </View>
+              <Text style={[s.pointText, { color: p.text }]}>{point}</Text>
+            </View>
+          ))}
         </View>
       </ScrollView>
-      <View style={styles.footer}>
-        <Text accessibilityLiveRegion="polite" style={[styles.progress, secondary]}>Step {step + 1} of {steps.length}</Text>
-        <View style={styles.actions}>
-          {step > 0 ? <Pressable accessibilityRole="button" disabled={busy} onPress={() => changeStep(step - 1)} style={styles.back}><Text style={[styles.backText, text]}>Back</Text></Pressable> : null}
-          <Pressable accessibilityRole="button" accessibilityState={{ disabled: busy, busy }} disabled={busy}
+
+      <View style={s.footer}>
+        <View style={s.dots}>
+          {steps.map((_, index) => <View key={index} style={[s.dot, { backgroundColor: index === step ? p.accent : p.line }]} />)}
+        </View>
+        <View style={s.actions}>
+          {step > 0 ? (
+            <Pressable accessibilityRole="button" disabled={busy} onPress={() => changeStep(step - 1)} style={[s.secondary, { borderColor: p.line }]}>
+              <Text style={[s.secondaryText, { color: p.text }]}>Back</Text>
+            </Pressable>
+          ) : null}
+          <Pressable
+            accessibilityRole="button"
+            accessibilityState={{ disabled: busy, busy }}
+            disabled={busy}
             onPress={() => step < steps.length - 1 ? changeStep(step + 1) : void save(completeOnboarding)}
-            style={[styles.button, busy && { opacity: 0.6 }]}>
-            <Text style={styles.buttonText}>{busy ? 'Saving…' : step === steps.length - 1 ? 'Get started  →' : 'Continue  →'}</Text>
+            style={[s.primary, { backgroundColor: p.accent }, busy && { opacity: 0.55 }]}
+          >
+            <Text style={[s.primaryText, { color: p.onAccent }]}>{busy ? 'Saving…' : step === steps.length - 1 ? 'Start using MATRIX' : 'Continue'}</Text>
           </Pressable>
         </View>
       </View>
@@ -67,27 +119,25 @@ export function Onboarding() {
   );
 }
 
-const styles = StyleSheet.create({
+const s = StyleSheet.create({
   safe: { flex: 1 },
-  top: { paddingHorizontal: 24, paddingTop: 12, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-  logo: { fontSize: 22, fontWeight: '800' },
-  theme: { height: 48, width: 48, borderRadius: 24, alignItems: 'center', justifyContent: 'center' },
-  themeText: { fontSize: 24 },
-  content: { padding: 24, paddingBottom: 32, flexGrow: 1, justifyContent: 'center' },
-  art: { height: 220, alignItems: 'center', justifyContent: 'center' },
-  orbit: { position: 'absolute', height: 200, width: 200, borderRadius: 100, borderWidth: 1 },
-  core: { height: 100, width: 100, borderRadius: 50, backgroundColor: '#126C4D', alignItems: 'center', justifyContent: 'center' },
-  coreText: { fontSize: 42, color: '#fff' },
-  title: { fontSize: 38, lineHeight: 44, letterSpacing: -1.4, fontWeight: '800', marginTop: 24 },
-  body: { fontSize: 16, lineHeight: 24, marginTop: 16 },
-  card: { marginTop: 28, padding: 20, borderRadius: 20 },
-  cardTitle: { fontSize: 16, fontWeight: '700' },
-  cardCopy: { fontSize: 14, lineHeight: 21, marginTop: 8 },
-  footer: { padding: 24, gap: 16 },
-  progress: { textAlign: 'center', fontSize: 13 },
-  actions: { flexDirection: 'row', gap: 12 },
-  back: { minHeight: 54, justifyContent: 'center', paddingHorizontal: 16 },
-  backText: { fontSize: 16, fontWeight: '600' },
-  button: { flex: 1, minHeight: 54, padding: 16, borderRadius: 17, backgroundColor: '#126C4D', alignItems: 'center', justifyContent: 'center' },
-  buttonText: { color: '#fff', fontWeight: '800', fontSize: 16 },
+  top: { paddingHorizontal: 24, paddingTop: 10, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  brand: { fontSize: 16, fontWeight: '700', letterSpacing: 1.8 },
+  themeButton: { width: 44, height: 44, borderRadius: 22, borderWidth: 1, alignItems: 'center', justifyContent: 'center' },
+  content: { paddingHorizontal: 24, paddingTop: 70, paddingBottom: 32, flexGrow: 1, maxWidth: 620, width: '100%', alignSelf: 'center' },
+  icon: { width: 68, height: 68, borderRadius: 20, alignItems: 'center', justifyContent: 'center' },
+  title: { fontSize: 34, lineHeight: 40, letterSpacing: -1.1, fontWeight: '700', marginTop: 28 },
+  body: { fontSize: 15, lineHeight: 23, marginTop: 12, maxWidth: 520 },
+  card: { marginTop: 30, borderRadius: 16, borderWidth: 1, overflow: 'hidden' },
+  point: { minHeight: 58, paddingHorizontal: 16, flexDirection: 'row', alignItems: 'center', gap: 12 },
+  check: { width: 28, height: 28, borderRadius: 9, alignItems: 'center', justifyContent: 'center' },
+  pointText: { fontSize: 14, fontWeight: '500' },
+  footer: { paddingHorizontal: 24, paddingTop: 12, paddingBottom: 22, gap: 18, maxWidth: 620, width: '100%', alignSelf: 'center' },
+  dots: { flexDirection: 'row', gap: 6, justifyContent: 'center' },
+  dot: { width: 6, height: 6, borderRadius: 3 },
+  actions: { flexDirection: 'row', gap: 10 },
+  secondary: { minHeight: 52, borderRadius: 14, borderWidth: 1, paddingHorizontal: 20, alignItems: 'center', justifyContent: 'center' },
+  secondaryText: { fontSize: 15, fontWeight: '600' },
+  primary: { flex: 1, minHeight: 52, borderRadius: 14, paddingHorizontal: 18, alignItems: 'center', justifyContent: 'center' },
+  primaryText: { fontSize: 15, fontWeight: '600' },
 });
