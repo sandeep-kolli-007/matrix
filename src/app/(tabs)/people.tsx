@@ -1,19 +1,66 @@
-import { matrixTheme } from '@/data/matrix-theme';
 import { useState } from 'react';
-import { Pressable, Text, View } from 'react-native';
+import { StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { router } from 'expo-router';
-import MessagesScreen from '../messages';
-import ContactsScreen from '../profile';
+
+import { HapticPressable as Pressable } from '@/components/haptic-pressable';
+import { matrixTheme } from '@/data/matrix-theme';
 import { useLifeOS } from '@/providers/lifeos-provider';
+import ContactsScreen from '../profile';
+import MessagesScreen from '../messages';
+
+type PeopleTab = 'Chats' | 'Contacts' | 'Groups' | 'Calls';
 
 export default function People() {
-  const [tab, setTab] = useState('Chats');
+  const [tab, setTab] = useState<PeopleTab>('Chats');
   const { appearance } = useLifeOS();
-  const dark = appearance === 'dark';
-  const p = matrixTheme(appearance); const { bg, text } = p;
-  return <SafeAreaView edges={['top']} style={{ flex: 1, backgroundColor: bg }}><View style={{ padding: 20, gap: 12 }}><Text style={{ color: text, fontSize: 30, fontWeight: '700' }}>People</Text><View style={{ flexDirection: 'row', gap: 6 }}>{['Chats', 'Calls', 'Contacts', 'Groups'].map(value => <Pressable key={value} accessibilityRole="button" accessibilityState={{ selected: value === tab }} onPress={() => setTab(value)} style={{ minHeight: 44, padding: 12, borderRadius: 12, backgroundColor: tab === value ? p.accent : p.panel }}><Text style={{ color: tab === value ? p.onAccent : text }}>{value}</Text></Pressable>)}</View></View>
-    {tab === 'Chats' ? <MessagesScreen embedded /> : tab === 'Contacts' ? <ContactsScreen /> : tab === 'Groups' ? <MessagesScreen groupsOnly embedded /> : <View style={{ padding: 24, gap: 20 }}><Text style={{ color: text, lineHeight: 24 }}>Voice and video calling are not connected yet. No calls have been placed through MATRIX.</Text><Pressable accessibilityRole="button" onPress={() => setTab('Contacts')} style={{ minHeight: 44 }}><Text style={{ color: text }}>Browse contacts →</Text></Pressable></View>}
-    {tab === 'Groups' ? <Pressable accessibilityRole="button" onPress={() => router.push({ pathname: '/entities', params: { type: 'Group' } })} style={{ padding: 18 }}><Text style={{ color: text }}>＋ Create group record</Text></Pressable> : null}
-  </SafeAreaView>;
+  const p = matrixTheme(appearance);
+
+  return (
+    <SafeAreaView edges={['top']} style={[s.safe, { backgroundColor: p.bg }]}>
+      <View style={s.header}>
+        <Text accessibilityRole="header" style={[s.title, { color: p.text }]}>People</Text>
+        <Text style={[s.subtitle, { color: p.muted }]}>Conversations and connections.</Text>
+        <View style={[s.segment, { backgroundColor: p.raised }]}>
+          {(['Chats', 'Contacts', 'Groups', 'Calls'] as const).map(value => {
+            const selected = value === tab;
+            return (
+              <Pressable key={value} accessibilityRole="button" accessibilityState={{ selected }} onPress={() => setTab(value)} style={[s.segmentItem, selected && { backgroundColor: p.panel }]}>
+                <Text style={[s.segmentText, { color: selected ? p.text : p.muted }]}>{value}</Text>
+              </Pressable>
+            );
+          })}
+        </View>
+      </View>
+
+      <View style={s.content}>
+        {tab === 'Chats' ? <MessagesScreen embedded /> : null}
+        {tab === 'Contacts' ? <ContactsScreen /> : null}
+        {tab === 'Groups' ? <MessagesScreen groupsOnly embedded /> : null}
+        {tab === 'Calls' ? (
+          <View style={[s.empty, { backgroundColor: p.panel, borderColor: p.line }]}>
+            <Text style={[s.emptyTitle, { color: p.text }]}>Calls aren’t connected yet</Text>
+            <Text style={[s.emptyText, { color: p.muted }]}>MATRIX won’t show call activity until calling is actually enabled.</Text>
+            <Pressable onPress={() => setTab('Contacts')} style={[s.action, { backgroundColor: p.accent }]}>
+              <Text style={{ color: p.onAccent, fontWeight: '600' }}>Browse contacts</Text>
+            </Pressable>
+          </View>
+        ) : null}
+      </View>
+    </SafeAreaView>
+  );
 }
+
+const s = StyleSheet.create({
+  safe: { flex: 1 },
+  header: { paddingHorizontal: 20, paddingTop: 8, paddingBottom: 10, maxWidth: 720, width: '100%', alignSelf: 'center' },
+  title: { fontSize: 34, lineHeight: 40, fontWeight: '700', letterSpacing: -1.1 },
+  subtitle: { fontSize: 13, marginTop: 3 },
+  segment: { flexDirection: 'row', borderRadius: 12, padding: 3, marginTop: 18 },
+  segmentItem: { flex: 1, minHeight: 38, borderRadius: 10, alignItems: 'center', justifyContent: 'center' },
+  segmentText: { fontSize: 12.5, fontWeight: '600' },
+  content: { flex: 1 },
+  empty: { marginHorizontal: 20, marginTop: 16, borderWidth: 1, borderRadius: 16, padding: 20, maxWidth: 680, alignSelf: 'center', width: '90%' },
+  emptyTitle: { fontSize: 16, fontWeight: '600' },
+  emptyText: { fontSize: 13, lineHeight: 19, marginTop: 5 },
+  action: { minHeight: 44, borderRadius: 12, paddingHorizontal: 16, alignSelf: 'flex-start', justifyContent: 'center', marginTop: 16 },
+});
