@@ -50,7 +50,7 @@ export function ProgressRing({
   const c = 2 * Math.PI * r;
   const dash = c * (clamped / 100);
   return (
-    <View style={{ alignItems: 'center', minWidth: size }}>
+    <View style={{ alignItems: 'center', width: size + 14, minWidth: size }}>
       <View style={{ width: size, height: size, alignItems: 'center', justifyContent: 'center' }}>
         <Svg width={size} height={size} viewBox="0 0 60 60" style={StyleSheet.absoluteFill}>
           <Circle cx="30" cy="30" r={r} fill="none" stroke="#243146" strokeWidth="5" />
@@ -66,7 +66,7 @@ export function ProgressRing({
         </Svg>
         {icon}
       </View>
-      <Text style={{ color: textColor, fontSize: 11, fontWeight: '650' as '600', marginTop: 6 }}>{label}</Text>
+      <Text numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.72} style={{ width: size + 14, textAlign: 'center', color: textColor, fontSize: 10.5, fontWeight: '650' as '600', marginTop: 6 }}>{label}</Text>
       <Text style={{ color: mutedColor, fontSize: 9.5, marginTop: 1 }}>{clamped}%</Text>
     </View>
   );
@@ -92,7 +92,7 @@ export function BalanceBar({
     <View style={b.row}>
       <View style={b.labelWrap}>
         <View style={b.icon}>{icon}</View>
-        <Text style={[b.label, { color: textColor }]}>{label}</Text>
+        <Text numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.78} style={[b.label, { color: textColor }]}>{label}</Text>
       </View>
       <View style={b.track}>
         <View style={[b.fill, { width: `${clamped}%`, backgroundColor: color }]} />
