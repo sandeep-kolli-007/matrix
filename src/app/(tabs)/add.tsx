@@ -65,7 +65,7 @@ export default function AddScreen() {
                 <Text accessibilityRole="header" style={[s.title, { color: p.text }]}>Quick Add</Text>
                 <Text style={[s.subtitle, { color: p.muted }]}>Capture anything. MATRIX will organize it.</Text>
               </View>
-              <Pressable onPress={() => router.back()} style={[s.close, { backgroundColor: p.raised }]}>
+              <Pressable onPress={() => router.replace('/(tabs)')} style={[s.close, { backgroundColor: p.raised }]}>
                 <SymbolView name={{ ios: 'xmark', android: 'close', web: 'close' }} size={17} tintColor={p.text} />
               </Pressable>
             </View>
