@@ -19,6 +19,8 @@ import { formatLocalDate } from '@/data/entity-date';
 import { homeSummary } from '@/data/home-summary';
 import { LifeEntity, listEntities } from '@/data/lifeos-store';
 import { matrixGroupColor, matrixTheme } from '@/data/matrix-theme';
+import { isPreviewReviewMode } from '@/data/matrix-source';
+import { previewEntityCount } from '@/data/preview-fixtures';
 import { scheduledDate } from '@/data/planning';
 import { useLifeOS } from '@/providers/lifeos-provider';
 
@@ -121,7 +123,15 @@ export default function HomeScreen() {
       >
         <View style={s.topBar}>
           <View>
-            <Text style={[s.eyebrow, { color: p.muted }]}>MATRIX</Text>
+            <View style={s.brandRow}>
+              <Text style={[s.eyebrow, { color: p.muted }]}>MATRIX</Text>
+              {isPreviewReviewMode ? (
+                <View style={[s.previewBadge, { backgroundColor: p.selected }]}>
+                  <View style={[s.previewDot, { backgroundColor: p.warning }]} />
+                  <Text style={[s.previewText, { color: p.accent }]}>PREVIEW DATA · {previewEntityCount}</Text>
+                </View>
+              ) : null}
+            </View>
             <Text accessibilityRole="header" style={[s.title, { color: p.text }]}>Your life, live.</Text>
             <Text style={[s.date, { color: p.muted }]}>
               {now.toLocaleDateString('en-IN', { weekday: 'long', day: 'numeric', month: 'long' })}
@@ -413,7 +423,11 @@ const s = StyleSheet.create({
   page: { paddingHorizontal: 18, paddingTop: 8, paddingBottom: 130, maxWidth: 900, width: '100%', alignSelf: 'center' },
   flex: { flex: 1 },
   topBar: { flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 20 },
-  eyebrow: { fontSize: 10, fontWeight: '700', letterSpacing: 1.6, marginBottom: 4 },
+  brandRow: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 4 },
+  eyebrow: { fontSize: 10, fontWeight: '700', letterSpacing: 1.6 },
+  previewBadge: { minHeight: 22, borderRadius: 11, paddingHorizontal: 8, flexDirection: 'row', alignItems: 'center', gap: 5 },
+  previewDot: { width: 5, height: 5, borderRadius: 3 },
+  previewText: { fontSize: 8.5, fontWeight: '700', letterSpacing: 0.55 },
   title: { fontSize: 34, lineHeight: 39, fontWeight: '700', letterSpacing: -1.2 },
   date: { fontSize: 12.5, marginTop: 5 },
   iconButton: { width: 44, height: 44, borderRadius: 16, alignItems: 'center', justifyContent: 'center' },
