@@ -255,7 +255,7 @@ const s = StyleSheet.create({
   brand: { fontSize: 17, fontWeight: '700', letterSpacing: -0.2 },
   avatarButton: { width: 38, height: 38, borderRadius: 19, alignItems: 'center', justifyContent: 'center' },
   hero: { minHeight: 198, borderRadius: 26, overflow: 'hidden', marginTop: 6 },
-  heroShade: { ...StyleSheet.absoluteFillObject, backgroundColor: '#06111DA8' },
+  heroShade: { position: 'absolute', left: 0, right: 0, top: 0, bottom: 0, backgroundColor: '#06111DA8' },
   heroContent: { flex: 1, justifyContent: 'flex-end', padding: 18 },
   greeting: { color: '#EAF1FA', fontSize: 16, fontWeight: '500' },
   heroName: { color: '#FFFFFF', fontSize: 27, lineHeight: 31, fontWeight: '750' as '700', letterSpacing: -0.7, marginTop: 1 },
