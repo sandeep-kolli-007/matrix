@@ -1,10 +1,11 @@
 import { NativeTabs } from 'expo-router/unstable-native-tabs';
 import { matrixTheme } from '@/data/matrix-theme';
+import { isPreviewReviewMode } from '@/data/matrix-source';
 import { useLifeOS } from '@/providers/lifeos-provider';
 
 export default function AppTabs() {
   const { appearance } = useLifeOS();
-  const { accent, muted, panel } = matrixTheme(appearance);
+  const { accent, muted, panel } = matrixTheme(isPreviewReviewMode ? 'dark' : appearance);
 
   return (
     <NativeTabs
@@ -12,8 +13,8 @@ export default function AppTabs() {
       tintColor={accent}
       iconColor={{ default: muted, selected: accent }}
       labelStyle={{
-        default: { color: muted, fontSize: 11 },
-        selected: { color: accent, fontSize: 11 },
+        default: { color: muted, fontSize: 10 },
+        selected: { color: accent, fontSize: 10, fontWeight: '600' },
       }}
     >
       <NativeTabs.Trigger name="index">
