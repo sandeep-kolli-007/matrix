@@ -9,130 +9,158 @@ import { EntityIcon } from '@/components/entity-icon';
 import { HapticPressable as Pressable } from '@/components/haptic-pressable';
 import { useRecords } from '@/components/use-records';
 import { entityCatalog } from '@/data/entity-catalog';
+import { isPreviewReviewMode } from '@/data/matrix-source';
+import { matrixGroupColor, matrixTheme } from '@/data/matrix-theme';
 import { localDay, shiftDay, timelineRecords } from '@/data/timeline';
+import { useLifeOS } from '@/providers/lifeos-provider';
 
-const weekdays = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+const filters = [
+  { label: 'All', group: null },
+  { label: 'Tasks', group: 'Productivity' },
+  { label: 'Health', group: 'Health' },
+  { label: 'Finance', group: 'Finance' },
+  { label: 'Work', group: 'Productivity' },
+] as const;
 
 export default function Timeline() {
-  const { items, loading, error, reload, p } = useRecords();
+  const records = useRecords();
+  const { appearance } = useLifeOS();
+  const p = matrixTheme(isPreviewReviewMode ? 'dark' : appearance);
   const [day, setDay] = useState(() => localDay(new Date()));
   const [picker, setPicker] = useState(false);
-  const [area, setArea] = useState('All');
+  const [filter, setFilter] = useState('All');
 
   const selected = new Date(`${day}T12:00:00`);
-  const start = shiftDay(day, -((selected.getDay() + 6) % 7));
-  const visible = useMemo(() => timelineRecords(items, day).filter(item => {
-    if (area === 'All') return true;
+  const visible = useMemo(() => timelineRecords(records.items, day).filter(item => {
+    if (filter === 'All') return true;
+    if (filter === 'Tasks') return ['Task', 'Habit', 'Goal', 'Project', 'Milestone'].includes(String(item.metadata.entityType));
+    const expected = filters.find(item => item.label === filter)?.group;
     const group = item.metadata.group ?? entityCatalog.find(type => type.name === item.metadata.entityType)?.group;
-    return group === ({ Health: 'Health', Money: 'Finance', Work: 'Productivity', People: 'People' } as Record<string, string>)[area];
-  }), [items, day, area]);
+    return expected ? group === expected : true;
+  }), [records.items, day, filter]);
 
   return (
     <SafeAreaView edges={['top']} style={[s.safe, { backgroundColor: p.bg }]}>
       <FlatList
         data={visible}
         keyExtractor={item => item.id}
-        refreshing={loading}
-        onRefresh={reload}
+        refreshing={records.loading}
+        onRefresh={records.reload}
+        showsVerticalScrollIndicator={false}
         contentContainerStyle={s.page}
         ListHeaderComponent={
-          <View style={s.header}>
-            <View style={s.titleRow}>
-              <View style={s.flex}>
-                <Text accessibilityRole="header" style={[s.title, { color: p.text }]}>Timeline</Text>
-                <Text style={[s.subtitle, { color: p.muted }]}>What you captured, day by day.</Text>
+          <View>
+            <View style={s.header}>
+              <Text accessibilityRole="header" style={[s.title, { color: p.text }]}>Timeline</Text>
+              <View style={s.actions}>
+                <Pressable accessibilityLabel="Search timeline" style={[s.circleButton, { backgroundColor: p.raised }]}>
+                  <SymbolView name={{ ios: 'magnifyingglass', android: 'search', web: 'search' }} size={18} tintColor={p.text} />
+                </Pressable>
+                <Pressable accessibilityLabel="Choose date" onPress={() => setPicker(v => !v)} style={[s.circleButton, { backgroundColor: p.raised }]}>
+                  <SymbolView name={{ ios: 'calendar', android: 'calendar_today', web: 'calendar_today' }} size={18} tintColor={p.text} />
+                </Pressable>
               </View>
-              <Pressable accessibilityRole="button" accessibilityLabel="Choose date" onPress={() => setPicker(value => !value)} style={[s.iconButton, { backgroundColor: p.panel, borderColor: p.line }]}>
-                <SymbolView name={{ ios: 'calendar', android: 'calendar_today', web: 'calendar_today' }} size={19} tintColor={p.text} />
-              </Pressable>
             </View>
 
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={s.filters}>
+              {filters.map(item => {
+                const active = filter === item.label;
+                return (
+                  <Pressable
+                    key={item.label}
+                    onPress={() => setFilter(item.label)}
+                    style={[s.filter, { backgroundColor: active ? p.accent : p.raised }]}
+                  >
+                    <Text style={[s.filterText, { color: active ? p.onAccent : p.muted }]}>{item.label}</Text>
+                  </Pressable>
+                );
+              })}
+            </ScrollView>
+
             {picker ? (
-              <View style={{ marginTop: 16 }}>
+              <View style={[s.datePicker, { backgroundColor: p.card, borderColor: p.line }]}>
                 <EntityFieldInput
                   field={{ key: 'date', label: 'Timeline date', placeholder: 'YYYY-MM-DD', input: 'date' }}
                   value={day}
                   onChange={value => {
-                    if (/^\d{4}-\d{2}-\d{2}$/.test(value) && localDay(new Date(`${value}T12:00:00`)) === value) setDay(value);
+                    if (/^\d{4}-\d{2}-\d{2}$/.test(value)) setDay(value);
                   }}
                   palette={p}
                 />
               </View>
             ) : null}
 
-            <View style={s.weekHeader}>
-              <Pressable onPress={() => setDay(shiftDay(day, -7))} style={s.weekArrow}>
-                <SymbolView name={{ ios: 'chevron.left', android: 'chevron_left', web: 'chevron_left' }} size={17} tintColor={p.muted} />
-              </Pressable>
-              <Text style={[s.month, { color: p.text }]}>{selected.toLocaleDateString(undefined, { month: 'long', year: 'numeric' })}</Text>
-              <Pressable onPress={() => setDay(shiftDay(day, 7))} style={s.weekArrow}>
-                <SymbolView name={{ ios: 'chevron.right', android: 'chevron_right', web: 'chevron_right' }} size={17} tintColor={p.muted} />
-              </Pressable>
-            </View>
-
-            <View style={s.week}>
-              {Array.from({ length: 7 }, (_, index) => {
-                const value = shiftDay(start, index);
-                const active = value === day;
-                const today = value === localDay(new Date());
-                return (
-                  <Pressable
-                    key={value}
-                    accessibilityRole="button"
-                    accessibilityLabel={value}
-                    accessibilityState={{ selected: active }}
-                    onPress={() => setDay(value)}
-                    style={[s.day, active && { backgroundColor: p.accent }]}
-                  >
-                    <Text style={[s.weekday, { color: active ? p.onAccent : p.muted }]}>{weekdays[index]}</Text>
-                    <Text style={[s.dayNumber, { color: active ? p.onAccent : p.text }]}>{Number(value.slice(-2))}</Text>
-                    <View style={[s.todayDot, { backgroundColor: today && !active ? p.accent : 'transparent' }]} />
-                  </Pressable>
-                );
-              })}
-            </View>
-
-            <View style={s.dayTitleRow}>
+            <View style={s.dateRow}>
               <View>
-                <Text style={[s.dayTitle, { color: p.text }]}>{selected.toLocaleDateString(undefined, { weekday: 'long', day: 'numeric', month: 'long' })}</Text>
-                <Text style={[s.dayCount, { color: p.muted }]}>{visible.length} {visible.length === 1 ? 'item' : 'items'}</Text>
+                <Text style={[s.todayLabel, { color: p.text }]}>
+                  {day === localDay(new Date()) ? 'Today' : selected.toLocaleDateString(undefined, { weekday: 'long' })}
+                </Text>
+                <Text style={[s.dateText, { color: p.muted }]}>
+                  {selected.toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' })}
+                </Text>
               </View>
-              {day !== localDay(new Date()) ? <Pressable onPress={() => setDay(localDay(new Date()))}><Text style={[s.todayLink, { color: p.accent }]}>Today</Text></Pressable> : null}
-            </View>
-
-            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={s.filters}>
-              {['All', 'Health', 'Money', 'Work', 'People'].map(value => (
-                <Pressable key={value} accessibilityRole="button" accessibilityState={{ selected: area === value }} onPress={() => setArea(value)} style={[s.filter, { backgroundColor: area === value ? p.selected : 'transparent', borderColor: area === value ? p.accent : p.line }]}>
-                  <Text style={[s.filterText, { color: area === value ? p.accent : p.muted }]}>{value}</Text>
+              <View style={s.dateNav}>
+                <Pressable onPress={() => setDay(shiftDay(day, -1))} style={s.navButton}>
+                  <SymbolView name={{ ios: 'chevron.left', android: 'chevron_left', web: 'chevron_left' }} size={17} tintColor={p.muted} />
                 </Pressable>
-              ))}
-            </ScrollView>
-
-            <Pressable onPress={() => router.navigate('/plans')} style={[s.plansLink, { borderColor: p.line }]}>
-              <Text style={[s.plansText, { color: p.text }]}>Scheduled plans</Text>
-              <SymbolView name={{ ios: 'chevron.right', android: 'chevron_right', web: 'chevron_right' }} size={15} tintColor={p.muted} />
-            </Pressable>
+                <Pressable onPress={() => setDay(shiftDay(day, 1))} style={s.navButton}>
+                  <SymbolView name={{ ios: 'chevron.right', android: 'chevron_right', web: 'chevron_right' }} size={17} tintColor={p.muted} />
+                </Pressable>
+              </View>
+            </View>
           </View>
         }
         ListEmptyComponent={
-          <View style={[s.empty, { backgroundColor: p.panel, borderColor: p.line }]}>
-            <Text style={[s.emptyTitle, { color: p.text }]}>{error ? 'Couldn’t load this day' : loading ? 'Loading…' : 'Nothing captured on this day'}</Text>
-            {!loading ? <Text style={[s.emptyText, { color: p.muted }]}>Items you add on this date will appear here.</Text> : null}
+          <View style={[s.empty, { backgroundColor: p.card, borderColor: p.line }]}>
+            <SymbolView name={{ ios: 'clock.badge.questionmark', android: 'schedule', web: 'schedule' }} size={26} tintColor={p.muted} />
+            <View style={s.flex}>
+              <Text style={[s.emptyTitle, { color: p.text }]}>{records.error ? 'Couldn’t load timeline' : 'No activity on this date'}</Text>
+              <Text style={[s.emptyText, { color: p.muted }]}>Try another date or add something new.</Text>
+            </View>
           </View>
         }
-        renderItem={({ item }) => (
-          <Pressable accessibilityRole="button" onPress={() => router.push({ pathname: '/entities', params: { id: item.id } })} style={[s.row, { backgroundColor: p.panel, borderColor: p.line }]}>
-            <Text style={[s.time, { color: p.muted }]}>{new Date(item.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</Text>
-            <View style={[s.rowIcon, { backgroundColor: p.raised }]}>
-              <EntityIcon type={String(item.metadata.entityType ?? '')} color={p.accent} size={21} />
-            </View>
-            <View style={s.flex}>
-              <Text numberOfLines={1} style={[s.rowTitle, { color: p.text }]}>{item.title}</Text>
-              <Text style={[s.rowMeta, { color: p.muted }]}>{String(item.metadata.entityType ?? item.kind)}</Text>
-            </View>
-            <SymbolView name={{ ios: 'chevron.right', android: 'chevron_right', web: 'chevron_right' }} size={15} tintColor={p.muted} />
-          </Pressable>
-        )}
+        renderItem={({ item, index }) => {
+          const type = String(item.metadata.entityType ?? item.kind);
+          const group = String(item.metadata.group ?? 'Other');
+          const domain = matrixGroupColor(group, isPreviewReviewMode ? 'dark' : appearance);
+          const time = String(item.metadata.time || new Date(item.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }));
+          return (
+            <Pressable
+              onPress={() => router.push({ pathname: '/entities', params: { id: item.id } })}
+              style={s.timelineRow}
+            >
+              <View style={s.timeCol}>
+                <Text style={[s.time, { color: p.muted }]}>{time}</Text>
+              </View>
+
+              <View style={s.rail}>
+                <View style={[s.dot, { backgroundColor: domain.accent, borderColor: p.bg }]} />
+                {index < visible.length - 1 ? <View style={[s.line, { backgroundColor: p.line }]} /> : null}
+              </View>
+
+              <View style={[s.eventCard, { backgroundColor: p.card, borderColor: p.line }]}>
+                <View style={[s.eventIcon, { backgroundColor: domain.soft }]}>
+                  <EntityIcon type={type} color={domain.accent} size={21} />
+                </View>
+                <View style={s.flex}>
+                  <Text numberOfLines={1} style={[s.eventTitle, { color: p.text }]}>{item.title}</Text>
+                  <Text numberOfLines={2} style={[s.eventMeta, { color: p.muted }]}>
+                    {type}{item.details ? ` · ${item.details}` : ''}
+                  </Text>
+                  {['Workout', 'Meal', 'Purchase', 'Trip', 'Document'].includes(type) ? (
+                    <View style={[s.mediaHint, { backgroundColor: domain.soft }]}>
+                      <EntityIcon type={type} color={domain.accent} size={15} />
+                      <Text style={[s.mediaHintText, { color: domain.accent }]}>
+                        {type === 'Workout' ? 'Activity details' : type === 'Meal' ? 'Nutrition logged' : 'Attached details'}
+                      </Text>
+                    </View>
+                  ) : null}
+                </View>
+                <SymbolView name={{ ios: 'ellipsis', android: 'more_horiz', web: 'more_horiz' }} size={15} tintColor={p.muted} />
+              </View>
+            </Pressable>
+          );
+        }}
       />
     </SafeAreaView>
   );
@@ -140,36 +168,34 @@ export default function Timeline() {
 
 const s = StyleSheet.create({
   safe: { flex: 1 },
-  page: { paddingHorizontal: 20, paddingTop: 8, paddingBottom: 120, maxWidth: 720, width: '100%', alignSelf: 'center' },
-  header: { marginBottom: 12 },
+  page: { paddingHorizontal: 14, paddingTop: 5, paddingBottom: 118, maxWidth: 660, width: '100%', alignSelf: 'center' },
   flex: { flex: 1 },
-  titleRow: { flexDirection: 'row', alignItems: 'center' },
-  title: { fontSize: 34, lineHeight: 40, fontWeight: '700', letterSpacing: -1.1 },
-  subtitle: { fontSize: 13, marginTop: 3 },
-  iconButton: { width: 44, height: 44, borderRadius: 22, borderWidth: 1, alignItems: 'center', justifyContent: 'center' },
-  weekHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: 22 },
-  month: { fontSize: 16, fontWeight: '600' },
-  weekArrow: { width: 40, height: 40, alignItems: 'center', justifyContent: 'center' },
-  week: { flexDirection: 'row', marginTop: 8, gap: 4 },
-  day: { flex: 1, minHeight: 68, borderRadius: 13, alignItems: 'center', justifyContent: 'center', gap: 4 },
-  weekday: { fontSize: 10.5, fontWeight: '500' },
-  dayNumber: { fontSize: 15, fontWeight: '600' },
-  todayDot: { width: 4, height: 4, borderRadius: 2 },
-  dayTitleRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: 24 },
-  dayTitle: { fontSize: 18, fontWeight: '600' },
-  dayCount: { fontSize: 12, marginTop: 3 },
-  todayLink: { fontSize: 13, fontWeight: '600' },
+  header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  title: { fontSize: 28, lineHeight: 34, fontWeight: '750' as '700', letterSpacing: -0.8 },
+  actions: { flexDirection: 'row', gap: 8 },
+  circleButton: { width: 38, height: 38, borderRadius: 19, alignItems: 'center', justifyContent: 'center' },
   filters: { gap: 8, paddingVertical: 14 },
-  filter: { height: 36, borderRadius: 18, borderWidth: 1, paddingHorizontal: 14, justifyContent: 'center' },
-  filterText: { fontSize: 12.5, fontWeight: '600' },
-  plansLink: { minHeight: 48, borderTopWidth: StyleSheet.hairlineWidth, borderBottomWidth: StyleSheet.hairlineWidth, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 },
-  plansText: { fontSize: 14, fontWeight: '500' },
-  row: { minHeight: 68, borderRadius: 15, borderWidth: 1, padding: 12, flexDirection: 'row', alignItems: 'center', gap: 11, marginBottom: 8 },
-  time: { width: 48, fontSize: 11 },
-  rowIcon: { width: 38, height: 38, borderRadius: 12, alignItems: 'center', justifyContent: 'center' },
-  rowTitle: { fontSize: 15, fontWeight: '600' },
-  rowMeta: { fontSize: 12, marginTop: 4 },
-  empty: { borderRadius: 16, borderWidth: 1, padding: 20 },
-  emptyTitle: { fontSize: 16, fontWeight: '600' },
-  emptyText: { fontSize: 13, lineHeight: 19, marginTop: 5 },
+  filter: { minHeight: 34, borderRadius: 17, paddingHorizontal: 14, alignItems: 'center', justifyContent: 'center' },
+  filterText: { fontSize: 11.5, fontWeight: '600' },
+  datePicker: { borderRadius: 18, borderWidth: 1, padding: 12, marginBottom: 10 },
+  dateRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 },
+  todayLabel: { fontSize: 16, fontWeight: '700' },
+  dateText: { fontSize: 10.5, marginTop: 2 },
+  dateNav: { flexDirection: 'row', gap: 2 },
+  navButton: { width: 36, height: 36, alignItems: 'center', justifyContent: 'center' },
+  timelineRow: { minHeight: 86, flexDirection: 'row', alignItems: 'stretch' },
+  timeCol: { width: 54, paddingTop: 16 },
+  time: { fontSize: 9.5, textAlign: 'right', fontVariant: ['tabular-nums'] },
+  rail: { width: 26, alignItems: 'center' },
+  dot: { width: 10, height: 10, borderRadius: 5, borderWidth: 2, marginTop: 20, zIndex: 2 },
+  line: { width: 1, flex: 1, marginTop: 1 },
+  eventCard: { flex: 1, minHeight: 74, marginBottom: 8, borderRadius: 16, borderWidth: 1, padding: 11, flexDirection: 'row', alignItems: 'center', gap: 10 },
+  eventIcon: { width: 38, height: 38, borderRadius: 12, alignItems: 'center', justifyContent: 'center' },
+  eventTitle: { fontSize: 12.5, fontWeight: '650' as '600' },
+  eventMeta: { fontSize: 9.5, lineHeight: 13, marginTop: 3 },
+  mediaHint: { alignSelf: 'flex-start', minHeight: 26, borderRadius: 8, marginTop: 7, paddingHorizontal: 8, flexDirection: 'row', alignItems: 'center', gap: 5 },
+  mediaHintText: { fontSize: 9, fontWeight: '600' },
+  empty: { minHeight: 82, borderRadius: 16, borderWidth: 1, paddingHorizontal: 14, flexDirection: 'row', alignItems: 'center', gap: 11, marginTop: 8 },
+  emptyTitle: { fontSize: 13, fontWeight: '600' },
+  emptyText: { fontSize: 10.5, marginTop: 3 },
 });
