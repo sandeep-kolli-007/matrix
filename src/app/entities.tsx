@@ -37,6 +37,7 @@ import { relatedEntities } from '@/data/entity-relations';
 import { validateEntityInput } from '@/data/entity-validation';
 import { LifeEntity, listEntities, removeEntity, saveEntity, setEntityArchived } from '@/data/lifeos-store';
 import { useLifeOS } from '@/providers/lifeos-provider';
+import { isPreviewReviewMode } from '@/data/matrix-source';
 import { ReferenceFeedbackModal } from '@/components/reference-feedback-modal';
 
 type Screen = 'catalog' | 'create' | 'detail';
@@ -52,10 +53,11 @@ function definitionFor(entity: LifeEntity) {
 export default function EntitiesScreen() {
   const params = useLocalSearchParams<{ type?: string; group?: string; id?: string; title?: string; request?: string; date?: string; deviceOnly?: string }>();
   const { appearance } = useLifeOS();
-  const dark = appearance === 'dark';
+  const reviewAppearance = isPreviewReviewMode ? 'dark' : appearance;
+  const dark = reviewAppearance === 'dark';
   const { width } = useWindowDimensions();
   const wideForm = width >= 760;
-  const palette = matrixTheme(appearance);
+  const palette = matrixTheme(reviewAppearance);
 
   const [screen, setScreen] = useState<Screen>('catalog');
   const [selectedType, setSelectedType] = useState<EntityDefinition | null>(null);
@@ -215,7 +217,7 @@ export default function EntitiesScreen() {
 
   if (screen === 'create' && selectedType) {
     const isLog = specializedLogTypes.includes(selectedType.name);
-    const groupColor = matrixGroupColor(selectedType.group, appearance);
+    const groupColor = matrixGroupColor(selectedType.group, reviewAppearance);
     const accent = groupColor.accent;
     const accentSoft = groupColor.soft;
     return (
@@ -404,7 +406,7 @@ export default function EntitiesScreen() {
   if (screen === 'detail' && selectedEntity) {
     const definition = definitionFor(selectedEntity);
     const ownedAsset = saved.find(item => item.metadata.entityType === 'Asset' && item.relatedIds?.includes(selectedEntity.id));
-    const detailGroupColor = matrixGroupColor(String(selectedEntity.metadata.group), appearance);
+    const detailGroupColor = matrixGroupColor(String(selectedEntity.metadata.group), reviewAppearance);
     const accent = detailGroupColor.accent;
     const accentSoft = detailGroupColor.soft;
     return (
