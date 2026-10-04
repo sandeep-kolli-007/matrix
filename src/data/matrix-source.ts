@@ -1,6 +1,8 @@
+import { Platform } from 'react-native';
 import { supabase } from '../utils/supabase';
 import { MatrixRow, normalizeMatrixRow } from './matrix-adapter';
 import { LifeEntity, setEntitySource } from './lifeos-store';
+import { buildPreviewEntities } from './preview-fixtures';
 
 export type DataMode = 'account' | 'local' | 'full' | 'empty' | 'sparse' | 'large';
 let mode: DataMode = 'account';
@@ -34,7 +36,18 @@ export async function selectDataMode(next: DataMode) {
     preview = rows;
   }
   mode = next;
-  if (next === 'account') setEntitySource(fetchAccountEntities);
+  if (next === 'account') export const isPreviewReviewMode =
+  Platform.OS === 'web'
+  && typeof window !== 'undefined'
+  && window.location.hostname.endsWith('github.io');
+
+if (isPreviewReviewMode) {
+  // GitHub Pages is the visual QA build. Preview records are read-only and are
+  // merged with any local records the reviewer creates in that browser.
+  setEntitySource(async () => buildPreviewEntities());
+} else {
+  setEntitySource(fetchAccountEntities);
+}
   else if (next === 'local') setEntitySource(null);
   else setEntitySource(async () => {
     if (next === 'empty') return [];
