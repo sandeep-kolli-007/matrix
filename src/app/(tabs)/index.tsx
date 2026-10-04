@@ -181,7 +181,7 @@ export default function HomeScreen() {
                 <View style={[s.quickTileIcon, { backgroundColor: domain.soft }]}>
                   <SymbolView name={{ ios: tile.ios, android: tile.other, web: tile.other }} size={18} tintColor={domain.accent} />
                 </View>
-                <Text style={[s.quickTileTitle, { color: p.text }]}>{tile.label}</Text>
+                <Text numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.8} style={[s.quickTileTitle, { color: p.text }]}>{tile.label}</Text>
                 <Text numberOfLines={1} style={[s.quickTileMeta, { color: p.muted }]}>{tileMeta(tile.type, tile.label)}</Text>
               </Pressable>
             );
@@ -262,11 +262,11 @@ const s = StyleSheet.create({
   heroSub: { color: '#B4C3D4', fontSize: 11.5, marginTop: 4 },
   quoteCard: { minHeight: 42, borderRadius: 14, backgroundColor: '#0D1B29C9', borderWidth: 1, borderColor: '#38516B', marginTop: 13, paddingHorizontal: 12, flexDirection: 'row', alignItems: 'center', gap: 8 },
   quoteText: { color: '#DCE7F3', flex: 1, fontSize: 10.5, lineHeight: 15 },
-  rings: { flexDirection: 'row', justifyContent: 'space-between', paddingHorizontal: 4, marginTop: 17 },
+  rings: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', paddingHorizontal: 0, marginTop: 17, gap: 2 },
   quickGrid: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between', rowGap: 8, marginTop: 18 },
   quickTile: { width: '23.5%', minHeight: 88, borderRadius: 16, borderWidth: 1, padding: 9, justifyContent: 'space-between' },
   quickTileIcon: { width: 30, height: 30, borderRadius: 10, alignItems: 'center', justifyContent: 'center' },
-  quickTileTitle: { fontSize: 11.5, fontWeight: '650' as '600', marginTop: 8 },
+  quickTileTitle: { fontSize: 11.5, lineHeight: 14, fontWeight: '650' as '600', marginTop: 8, flexShrink: 1 },
   quickTileMeta: { fontSize: 8.8, marginTop: 2 },
   sectionHead: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: 22, marginBottom: 9 },
   sectionTitle: { fontSize: 18, fontWeight: '700', letterSpacing: -0.3 },
@@ -277,7 +277,7 @@ const s = StyleSheet.create({
   todayIcon: { width: 38, height: 38, borderRadius: 12, alignItems: 'center', justifyContent: 'center' },
   todayTitle: { fontSize: 12.5, fontWeight: '650' as '600' },
   todayMeta: { fontSize: 9.5, marginTop: 3 },
-  todayTime: { fontSize: 9.5, fontVariant: ['tabular-nums'] },
+  todayTime: { maxWidth: 58, fontSize: 9.5, fontVariant: ['tabular-nums'], textAlign: 'right' },
   empty: { minHeight: 78, borderRadius: 16, borderWidth: 1, paddingHorizontal: 14, flexDirection: 'row', gap: 11, alignItems: 'center' },
   emptyTitle: { fontSize: 13, fontWeight: '600' },
   emptyText: { fontSize: 10.5, lineHeight: 15, marginTop: 3 },
