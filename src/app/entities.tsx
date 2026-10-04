@@ -37,6 +37,7 @@ import { relatedEntities } from '@/data/entity-relations';
 import { validateEntityInput } from '@/data/entity-validation';
 import { LifeEntity, listEntities, removeEntity, saveEntity, setEntityArchived } from '@/data/lifeos-store';
 import { useLifeOS } from '@/providers/lifeos-provider';
+import { ReferenceFeedbackModal } from '@/components/reference-feedback-modal';
 
 type Screen = 'catalog' | 'create' | 'detail';
 
@@ -65,6 +66,7 @@ export default function EntitiesScreen() {
   const [deviceOnly, setDeviceOnly] = useState(false);
   const [fieldValues, setFieldValues] = useState<Record<string, string>>({});
   const [saving, setSaving] = useState(false);
+  const [feedbackEntity, setFeedbackEntity] = useState<LifeEntity | null>(null);
   const [editing, setEditing] = useState<LifeEntity | null>(null);
   const [relatedIds, setRelatedIds] = useState<string[]>([]);
   const [relationQuery, setRelationQuery] = useState('');
@@ -129,6 +131,7 @@ export default function EntitiesScreen() {
   }
 
   function startCreate(definition: EntityDefinition) {
+    setFeedbackEntity(null);
     setEditing(null);
     setSelectedType(definition);
     setTitle('');
@@ -164,6 +167,7 @@ export default function EntitiesScreen() {
       await refresh();
       setSelectedEntity(entity);
       setScreen('detail');
+      setFeedbackEntity(entity);
     } catch {
       Alert.alert('Could not save', 'Your form is still here. Please try again.');
     } finally {
@@ -405,6 +409,16 @@ export default function EntitiesScreen() {
     const accentSoft = detailGroupColor.soft;
     return (
       <SafeAreaView style={[styles.safe, { backgroundColor: palette.bg }]} edges={['top']}>
+        <ReferenceFeedbackModal
+          entity={feedbackEntity}
+          palette={palette}
+          onView={() => setFeedbackEntity(null)}
+          onAnother={() => {
+            const definition = feedbackEntity ? definitionFor(feedbackEntity) : null;
+            setFeedbackEntity(null);
+            if (definition) startCreate(definition);
+          }}
+        />
         <ScrollView contentContainerStyle={styles.formWrap}>
           <Header title={String(selectedEntity.metadata.entityType ?? definition?.name ?? 'Item')} onBack={returnToPreviousScreen} palette={palette} />
           <View style={[styles.detailCard, { backgroundColor: accentSoft, borderColor: accent }]}>
