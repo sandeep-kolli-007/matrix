@@ -103,8 +103,9 @@ export default function HomeScreen() {
     return { label: item.label, value: item.total, color: domain.accent };
   }), [appearance, dashboard.groupTrends]);
 
+  const activeEntitySignals = useMemo(() => entitySignals.filter(item => item.count > 0), [entitySignals]);
   const recent = useMemo(() => [...items].sort((a, b) => b.updatedAt.localeCompare(a.updatedAt)).slice(0, 8), [items]);
-  const activeTypes = entitySignals.filter(item => item.count > 0).length;
+  const activeTypes = activeEntitySignals.length;
   const privateCount = items.filter(item => item.deviceOnly).length;
   const todayItems = summary.today.slice(0, 6);
 
@@ -303,39 +304,62 @@ export default function HomeScreen() {
 
         <View style={s.sectionHeader}>
           <View>
-            <Text style={[s.sectionTitle, { color: p.text }]}>Entity signals</Text>
-            <Text style={[s.sectionSubtitle, { color: p.muted }]}>All {entitySignals.length} entity types · 7-day micro trends</Text>
+            <Text style={[s.sectionTitle, { color: p.text }]}>Entity trends</Text>
+            <Text style={[s.sectionSubtitle, { color: p.muted }]}>
+              {activeEntitySignals.length ? `${activeEntitySignals.length} active data types · last 7 days` : 'Trends appear as you add data'}
+            </Text>
           </View>
+          <Pressable onPress={() => router.navigate('/matrix')}>
+            <Text style={[s.sectionLink, { color: p.accent }]}>Browse all</Text>
+          </Pressable>
         </View>
 
-        <View style={s.entityGrid}>
-          {entitySignals.map((item, index) => {
-            const domain = matrixGroupColor(item.group, appearance);
-            return (
-              <MotionReveal key={item.name} delay={Math.min(index, 10) * 20}>
-                <Pressable
-                  onPress={() => router.navigate({ pathname: '/entities', params: { type: item.name } })}
-                  style={[
-                    s.entityTile,
-                    { width: `${100 / columns - 1.2}%`, backgroundColor: item.count ? domain.soft : p.card },
-                  ]}
-                >
-                  <View style={s.entityTop}>
-                    <View style={[s.entityIcon, { backgroundColor: p.panel }]}>
-                      <EntityIcon type={item.name} color={item.count ? domain.accent : p.muted} size={18} />
-                    </View>
-                    <Text style={[s.entityCount, { color: item.count ? domain.accent : p.muted }]}>{item.count}</Text>
-                  </View>
-                  <Text numberOfLines={1} style={[s.entityName, { color: p.text }]}>{item.name}</Text>
-                  <Text numberOfLines={1} style={[s.entityGroup, { color: p.muted }]}>{item.group}</Text>
-                  <View style={s.microWrap}>
-                    <MicroBars values={item.values} color={domain.accent} trackColor={p.line} height={26} />
-                  </View>
+        {activeEntitySignals.length ? (
+          <View style={s.entityGrid}>
+            {activeEntitySignals.map((item, index) => {
+              const domain = matrixGroupColor(item.group, appearance);
+              return (
+                <View key={item.name} style={[s.entityCell, { width: `${100 / columns - 1.2}%` }]}>
+                  <MotionReveal delay={Math.min(index, 10) * 20}>
+                    <Pressable
+                      onPress={() => router.navigate({ pathname: '/entities', params: { type: item.name } })}
+                      style={[s.entityTile, { backgroundColor: domain.soft }]}
+                    >
+                      <View style={s.entityTop}>
+                        <View style={[s.entityIcon, { backgroundColor: p.panel }]}>
+                          <EntityIcon type={item.name} color={domain.accent} size={18} />
+                        </View>
+                        <Text style={[s.entityCount, { color: domain.accent }]}>{item.count}</Text>
+                      </View>
+                      <Text numberOfLines={1} style={[s.entityName, { color: p.text }]}>{item.name}</Text>
+                      <Text numberOfLines={1} style={[s.entityGroup, { color: p.muted }]}>{item.group}</Text>
+                      <View style={s.microWrap}>
+                        <MicroBars values={item.values} color={domain.accent} trackColor={p.line} height={28} />
+                      </View>
+                    </Pressable>
+                  </MotionReveal>
+                </View>
+              );
+            })}
+          </View>
+        ) : (
+          <MotionReveal>
+            <View style={[s.entityEmpty, { backgroundColor: p.card }]}>
+              <View style={[s.entityEmptyVisual, { backgroundColor: p.subtle }]}>
+                <MatrixLottie size={104} />
+              </View>
+              <View style={s.flex}>
+                <Text style={[s.entityEmptyTitle, { color: p.text }]}>Your dashboard is ready for data</Text>
+                <Text style={[s.entityEmptyText, { color: p.muted }]}>
+                  Add a task, expense, workout, meal, note, or anything else. MATRIX will turn real records into trends here automatically.
+                </Text>
+                <Pressable onPress={() => router.navigate('/add')} style={[s.entityEmptyAction, { backgroundColor: p.accent }]}>
+                  <Text style={{ color: p.onAccent, fontSize: 12.5, fontWeight: '700' }}>Add first record</Text>
                 </Pressable>
-              </MotionReveal>
-            );
-          })}
-        </View>
+              </View>
+            </View>
+          </MotionReveal>
+        )}
 
         <View style={s.sectionHeader}>
           <View>
@@ -452,14 +476,20 @@ const s = StyleSheet.create({
   emptyTitle: { fontSize: 14, fontWeight: '600' },
   emptyText: { fontSize: 11.5, lineHeight: 17 },
 
-  entityGrid: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between', rowGap: 9 },
-  entityTile: { minHeight: 124, borderRadius: 19, padding: 13 },
+  entityGrid: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between', rowGap: 10 },
+  entityCell: { minWidth: 0 },
+  entityTile: { width: '100%', minHeight: 128, borderRadius: 20, padding: 14 },
   entityTop: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   entityIcon: { width: 34, height: 34, borderRadius: 11, alignItems: 'center', justifyContent: 'center' },
   entityCount: { fontSize: 17, fontWeight: '700', fontVariant: ['tabular-nums'] },
   entityName: { fontSize: 12.5, fontWeight: '600', marginTop: 10 },
   entityGroup: { fontSize: 9.5, marginTop: 2 },
   microWrap: { marginTop: 12 },
+  entityEmpty: { borderRadius: 24, padding: 16, flexDirection: 'row', alignItems: 'center', gap: 16 },
+  entityEmptyVisual: { width: 118, minHeight: 118, borderRadius: 20, alignItems: 'center', justifyContent: 'center' },
+  entityEmptyTitle: { fontSize: 16, fontWeight: '700', letterSpacing: -0.25 },
+  entityEmptyText: { fontSize: 11.5, lineHeight: 17, marginTop: 5 },
+  entityEmptyAction: { alignSelf: 'flex-start', minHeight: 40, borderRadius: 12, paddingHorizontal: 14, alignItems: 'center', justifyContent: 'center', marginTop: 12 },
 
   errorCard: { borderRadius: 18, borderWidth: 1, padding: 16, marginTop: 16 },
   errorTitle: { fontSize: 14, fontWeight: '600' },
