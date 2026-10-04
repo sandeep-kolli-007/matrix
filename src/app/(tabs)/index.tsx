@@ -174,7 +174,7 @@ export default function HomeScreen() {
               <Pressable
                 key={tile.label}
                 onPress={() => tile.label === 'More'
-                  ? router.navigate('/matrix')
+                  ? router.navigate('/(tabs)/matrix')
                   : router.navigate({ pathname: '/entities', params: { type: tile.type, request: String(Date.now()) } })}
                 style={[s.quickTile, { backgroundColor: p.card, borderColor: p.line }]}
               >
@@ -190,7 +190,7 @@ export default function HomeScreen() {
 
         <View style={s.sectionHead}>
           <Text style={[s.sectionTitle, { color: p.text }]}>Today</Text>
-          <Pressable onPress={() => router.navigate('/timeline')}><Text style={[s.seeAll, { color: p.accent }]}>See all</Text></Pressable>
+          <Pressable onPress={() => router.navigate('/(tabs)/timeline')}><Text style={[s.seeAll, { color: p.accent }]}>See all</Text></Pressable>
         </View>
 
         <View style={s.todayList}>
