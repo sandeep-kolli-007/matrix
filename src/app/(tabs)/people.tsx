@@ -117,13 +117,13 @@ export default function PeopleScreen() {
                   <View style={[s.presence, { backgroundColor: active ? '#32D583' : p.muted, borderColor: p.card }]} />
                 </View>
                 <View style={s.flex}>
-                  <Text style={[s.friendName, { color: p.text }]}>{item.title}</Text>
+                  <Text numberOfLines={1} style={[s.friendName, { color: p.text }]}>{item.title}</Text>
                   <Text numberOfLines={1} style={[s.friendStatus, { color: p.muted }]}>
                     {active ? '● Active now' : relationship}
                   </Text>
                 </View>
                 <View style={s.streakWrap}>
-                  <Text style={[s.streak, { color: '#FFB43C' }]}>🔥 {streak} day streak</Text>
+                  <Text numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.78} style={[s.streak, { color: '#FFB43C' }]}>🔥 {streak} day streak</Text>
                   <Pressable onPress={() => router.push('/messages')} style={[s.chatButton, { backgroundColor: p.raised }]}>
                     <SymbolView name={{ ios: 'message', android: 'chat_bubble_outline', web: 'chat_bubble_outline' }} size={14} tintColor={p.text} />
                   </Pressable>
@@ -147,7 +147,7 @@ export default function PeopleScreen() {
             <Text style={[s.importCopy, { color: p.muted }]}>Sync contacts to see who’s already here.</Text>
           </View>
           <Pressable onPress={() => router.navigate({ pathname: '/entities', params: { type: 'Person', request: String(Date.now()) } })} style={[s.importButton, { backgroundColor: p.accent }]}>
-            <Text style={s.importButtonText}>Import Contacts</Text>
+            <Text numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.75} style={s.importButtonText}>Import Contacts</Text>
           </Pressable>
         </View>
       </ScrollView>
@@ -181,7 +181,7 @@ const s = StyleSheet.create({
   presence: { position: 'absolute', width: 10, height: 10, borderRadius: 5, borderWidth: 2, right: -1, bottom: 1 },
   friendName: { fontSize: 12, fontWeight: '650' as '600' },
   friendStatus: { fontSize: 9.5, marginTop: 3 },
-  streakWrap: { alignItems: 'flex-end', gap: 5 },
+  streakWrap: { width: 88, alignItems: 'flex-end', gap: 5, flexShrink: 0 },
   streak: { fontSize: 8.5, fontWeight: '600' },
   chatButton: { width: 29, height: 29, borderRadius: 15, alignItems: 'center', justifyContent: 'center' },
   empty: { paddingVertical: 22, alignItems: 'center' },
@@ -191,6 +191,6 @@ const s = StyleSheet.create({
   importIcon: { width: 42, height: 42, borderRadius: 13, alignItems: 'center', justifyContent: 'center' },
   importTitle: { fontSize: 12, fontWeight: '650' as '600' },
   importCopy: { fontSize: 9.2, lineHeight: 13, marginTop: 3 },
-  importButton: { minHeight: 38, borderRadius: 12, paddingHorizontal: 10, alignItems: 'center', justifyContent: 'center' },
+  importButton: { minWidth: 90, maxWidth: 108, minHeight: 38, borderRadius: 12, paddingHorizontal: 8, alignItems: 'center', justifyContent: 'center', flexShrink: 0 },
   importButtonText: { color: '#FFFFFF', fontSize: 9.5, fontWeight: '700' },
 });
