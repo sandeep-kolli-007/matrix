@@ -28,6 +28,7 @@ import { Redirect, router, useFocusEffect, useLocalSearchParams } from 'expo-rou
 
 import { EntityDefinition, entityCatalog, entityGroups } from '@/data/entity-catalog';
 import { fieldsForEntity } from '@/data/entity-fields';
+import { entryFieldGroups } from '@/data/entity-entry-layout';
 import { creationDateFields } from '@/data/planning';
 import { EntityFieldInput } from '@/components/entity-field-input';
 import { SpecializedLog } from '@/components/specialized-log';
@@ -68,6 +69,7 @@ export default function EntitiesScreen() {
   const [deviceOnly, setDeviceOnly] = useState(false);
   const [fieldValues, setFieldValues] = useState<Record<string, string>>({});
   const [saving, setSaving] = useState(false);
+  const [showMoreDetails, setShowMoreDetails] = useState(false);
   const [feedbackEntity, setFeedbackEntity] = useState<LifeEntity | null>(null);
   const [editing, setEditing] = useState<LifeEntity | null>(null);
   const [relatedIds, setRelatedIds] = useState<string[]>([]);
@@ -138,6 +140,7 @@ export default function EntitiesScreen() {
     setSelectedType(definition);
     setTitle('');
     setDetails('');
+    setShowMoreDetails(false);
     setFieldValues({});
     setRelatedIds([]);
     setRelationQuery('');
@@ -186,6 +189,7 @@ export default function EntitiesScreen() {
     setSelectedType(definition);
     setTitle(entity.title);
     setDetails(entity.details ?? '');
+    setShowMoreDetails(false);
     setDeviceOnly(entity.deviceOnly);
     setRelatedIds(entity.relatedIds ?? []);
     const editableKeys = new Set(fieldsForEntity(definition.name).map((field) => field.key));
@@ -220,6 +224,9 @@ export default function EntitiesScreen() {
     const groupColor = matrixGroupColor(selectedType.group, reviewAppearance);
     const accent = groupColor.accent;
     const accentSoft = groupColor.soft;
+    const fieldGroups = entryFieldGroups(selectedType.name, fieldsForEntity(selectedType.name));
+    const visibleFields = showMoreDetails ? [...fieldGroups.primary, ...fieldGroups.extra] : fieldGroups.primary;
+    const hiddenDetailCount = fieldGroups.extra.length + 3;
     return (
       <SafeAreaView style={[styles.safe, { backgroundColor: palette.bg }]} edges={['top']}>
         <ScrollView contentContainerStyle={styles.formWrap} keyboardShouldPersistTaps="handled">
@@ -257,17 +264,7 @@ export default function EntitiesScreen() {
             returnKeyType="done"
             style={[styles.heroField, { color: palette.text, backgroundColor: title ? accentSoft : palette.raised, borderColor: title ? accent : palette.line }]}
           />
-          <Text style={[styles.label, { color: palette.muted }]}>Notes <Text style={{ fontWeight: '500' }}>· optional</Text></Text>
-          <TextInput
-            accessibilityLabel={selectedType.name + ' notes, optional'}
-            value={details}
-            onChangeText={setDetails}
-            multiline
-            placeholder="Add context, links, or anything worth remembering"
-            placeholderTextColor={palette.muted}
-            textAlignVertical="top"
-            style={[styles.notesField, { backgroundColor: palette.raised, borderColor: palette.line, color: palette.text }]}
-          />
+
           {visualCapture ? <SpecializedLog type={selectedType.name} values={fieldValues} palette={palette} onChange={(key, value) => setFieldValues(current => ({ ...current, [key]: value }))} /> : null}
           {visualCapture ? null : isLog ? <SpecializedLog type={selectedType.name} values={fieldValues} palette={palette} onChange={(key, value) => setFieldValues(current => ({ ...current, [key]: value }))} /> : <>
             <View style={styles.formSectionHead}>
@@ -277,7 +274,7 @@ export default function EntitiesScreen() {
               </View>
             </View>
             <View style={styles.dynamicGrid}>
-            {fieldsForEntity(selectedType.name).map((item) => (
+            {visibleFields.map((item) => (
               <View
                 key={item.key}
                 style={[
@@ -286,7 +283,7 @@ export default function EntitiesScreen() {
                 ]}
               >
                 <Text style={[styles.label, { color: palette.muted }]}>{((selectedType.name === 'Task' && item.key === 'project') || (selectedType.name === 'Habit' && item.key === 'goal')) ? 'Part of · optional' : item.label}</Text>
-                {selectedType.name === 'Expense' && item.key === 'amount' ? <TextInput accessibilityLabel="Expense amount" value={fieldValues.amount ?? ''} onChangeText={value => { const amount = value.replace(',', '.'); if (/^\d*(\.\d*)?$/.test(amount)) setFieldValues(current => ({ ...current, amount })); }} keyboardType="decimal-pad" inputMode="decimal" placeholder="0.00" placeholderTextColor={palette.muted} style={[styles.field, { color: palette.text, backgroundColor: palette.raised, borderColor: fieldValues.amount ? accent : palette.line, marginBottom: 16 }]} /> : selectedType.name === 'Expense' && item.key === 'account' ? <View style={{ marginBottom: 16 }}>
+                {selectedType.name === 'Expense' && item.key === 'account' ? <View style={{ marginBottom: 16 }}>
                   <Pressable accessibilityRole="button" accessibilityLabel="Select expense account" accessibilityState={{ expanded: accountPickerOpen }} onPress={() => setAccountPickerOpen(true)} style={{ minHeight: 52, padding: 14, borderWidth: 1, borderColor: palette.line, borderRadius: 14, backgroundColor: palette.raised, flexDirection: 'row', alignItems: 'center', gap: 12 }}>
                     <SymbolView name={{ ios: 'creditcard', android: 'credit_card', web: 'credit_card' }} size={22} tintColor={palette.muted} />
                     <Text style={{ flex: 1, color: fieldValues.account ? palette.text : palette.muted }}>{fieldValues.account || 'Select account or payment method'}</Text>
@@ -363,7 +360,37 @@ export default function EntitiesScreen() {
               </View>
             ))}
             </View>
+            <Pressable
+              accessibilityRole="button"
+              accessibilityState={{ expanded: showMoreDetails }}
+              onPress={() => setShowMoreDetails(value => !value)}
+              style={[styles.moreDetails, { backgroundColor: palette.card, borderColor: palette.line }]}
+            >
+              <View style={[styles.moreDetailsIcon, { backgroundColor: accentSoft }]}>
+                <SymbolView name={{ ios: 'slider.horizontal.3', android: 'tune', web: 'tune' }} size={17} tintColor={accent} />
+              </View>
+              <View style={styles.flex}>
+                <Text style={[styles.moreDetailsTitle, { color: palette.text }]}>{showMoreDetails ? 'Hide extra details' : 'More details'}</Text>
+                <Text numberOfLines={1} style={[styles.moreDetailsSub, { color: palette.muted }]}>
+                  {showMoreDetails ? 'Keep the entry screen focused' : `${hiddenDetailCount} optional areas · notes, links, privacy and more`}
+                </Text>
+              </View>
+              <SymbolView name={{ ios: showMoreDetails ? 'chevron.up' : 'chevron.down', android: showMoreDetails ? 'expand_less' : 'expand_more', web: showMoreDetails ? 'expand_less' : 'expand_more' }} size={17} tintColor={palette.muted} />
+            </Pressable>
           </>}
+
+          {showMoreDetails ? <>
+          <Text style={[styles.label, { color: palette.muted, marginTop: 18 }]}>Notes · optional</Text>
+          <TextInput
+            accessibilityLabel={selectedType.name + ' notes, optional'}
+            value={details}
+            onChangeText={setDetails}
+            multiline
+            placeholder="Add context, links, or anything worth remembering"
+            placeholderTextColor={palette.muted}
+            textAlignVertical="top"
+            style={[styles.notesField, { backgroundColor: palette.raised, borderColor: palette.line, color: palette.text }]}
+          />
 
           <View style={styles.sectionIntro}>
             <View style={styles.flex}>
@@ -390,6 +417,7 @@ export default function EntitiesScreen() {
             <Switch accessibilityLabel="Stay only on this device" value={deviceOnly} onValueChange={setDeviceOnly} trackColor={{ false: palette.line, true: palette.accent }} thumbColor="#FFFFFF" />
           </View>
           {selectedType.privateByDefault ? <Text style={[styles.privateHint, { color: palette.muted }]}>Sensitive {selectedType.name.toLowerCase()} data starts as device-only. You are always in control.</Text> : null}
+          </> : null}
 
           <Pressable
             disabled={!captureTitle || saving}
@@ -539,6 +567,10 @@ const styles = StyleSheet.create({
   formSectionHead: { flexDirection: 'row', alignItems: 'center', marginTop: 6, marginBottom: 13 },
   formSectionTitle: { fontSize: 17, fontWeight: '700', letterSpacing: -0.25 },
   formSectionSubtitle: { fontSize: 11.5, lineHeight: 17, marginTop: 3 },
+  moreDetails: { minHeight: 62, borderRadius: 17, borderWidth: 1, paddingHorizontal: 13, flexDirection: 'row', alignItems: 'center', gap: 11, marginTop: 2, marginBottom: 6 },
+  moreDetailsIcon: { width: 36, height: 36, borderRadius: 11, alignItems: 'center', justifyContent: 'center' },
+  moreDetailsTitle: { fontSize: 13.5, fontWeight: '650' as '600' },
+  moreDetailsSub: { fontSize: 10.5, marginTop: 2 },
   dynamicField: { marginBottom: 16 },
   privacy: { flexDirection: 'row', alignItems: 'center', borderRadius: 19, borderWidth: 1, padding: 14, gap: 12 },
   privacyIcon: { width: 38, height: 38, borderRadius: 13, alignItems: 'center', justifyContent: 'center' },
