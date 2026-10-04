@@ -140,7 +140,7 @@ export default function MatrixScreen() {
                 ]}
               >
                 <SymbolView name={{ ios: bubble.ios as never, android: bubble.other as never, web: bubble.other as never }} size={19} tintColor={bubble.color} />
-                <Text style={s.bubbleLabel}>{bubble.label}</Text>
+                <Text numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.68} style={s.bubbleLabel}>{bubble.label}</Text>
                 <Text style={[s.bubbleValue, { color: bubble.color }]}>{bubble.value}%</Text>
               </Pressable>
             );
@@ -215,7 +215,7 @@ const s = StyleSheet.create({
   centerGlow: { position: 'absolute', width: 68, height: 68, borderRadius: 34, backgroundColor: '#283685' },
   centerText: { color: '#FFFFFF', fontSize: 16, fontWeight: '750' as '700' },
   bubble: { position: 'absolute', width: 82, height: 82, borderRadius: 41, borderWidth: 1.5, alignItems: 'center', justifyContent: 'center', shadowOpacity: 0.72, shadowRadius: 14, elevation: 8 },
-  bubbleLabel: { color: '#F8FAFF', fontSize: 9.5, fontWeight: '650' as '600', marginTop: 3 },
+  bubbleLabel: { width: 70, textAlign: 'center', color: '#F8FAFF', fontSize: 9.5, fontWeight: '650' as '600', marginTop: 3 },
   bubbleValue: { fontSize: 10.5, fontWeight: '700', marginTop: 1 },
   particle: { position: 'absolute', width: 4, height: 4, borderRadius: 2, opacity: 0.75 },
   balanceCard: { borderRadius: 20, borderWidth: 1, padding: 15, marginTop: 12 },
@@ -226,5 +226,5 @@ const s = StyleSheet.create({
   summaryRow: { flexDirection: 'row', gap: 9, marginTop: 10 },
   summaryCard: { flex: 1, minHeight: 74, borderRadius: 17, padding: 13, justifyContent: 'center' },
   summaryValue: { fontSize: 21, fontWeight: '700', letterSpacing: -0.5 },
-  summaryLabel: { fontSize: 9.5, marginTop: 2 },
+  summaryLabel: { fontSize: 9.5, lineHeight: 13, marginTop: 2, flexShrink: 1 },
 });
