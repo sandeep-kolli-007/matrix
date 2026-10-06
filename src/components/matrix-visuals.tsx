@@ -136,16 +136,31 @@ export function LifeOrb({
   );
 }
 
-function pathFor(values: number[], width: number, height: number) {
+function trendPoints(values: number[], width: number, height: number, maxValue?: number) {
+  const max = Math.max(1, maxValue ?? Math.max(...values, 1));
+  const ceiling = Math.max(1, max * 1.18);
+  return values.map((value, index) => ({
+    x: values.length === 1 ? width / 2 : index * (width / (values.length - 1)),
+    y: height - 10 - (Math.max(0, value) / ceiling) * (height - 22),
+  }));
+}
+
+function smoothPath(values: number[], width: number, height: number, maxValue?: number) {
   if (!values.length) return '';
-  const min = Math.min(...values);
-  const max = Math.max(...values);
-  const span = Math.max(1, max - min);
-  return values.map((value, index) => {
-    const x = values.length === 1 ? width / 2 : index * (width / (values.length - 1));
-    const y = height - 10 - ((value - min) / span) * (height - 20);
-    return `${index === 0 ? 'M' : 'L'} ${x.toFixed(2)} ${y.toFixed(2)}`;
-  }).join(' ');
+  const points = trendPoints(values, width, height, maxValue);
+  if (points.length === 1) return `M ${points[0].x.toFixed(2)} ${points[0].y.toFixed(2)}`;
+
+  let path = `M ${points[0].x.toFixed(2)} ${points[0].y.toFixed(2)}`;
+  for (let index = 0; index < points.length - 1; index++) {
+    const current = points[index];
+    const next = points[index + 1];
+    const midX = (current.x + next.x) / 2;
+    const midY = (current.y + next.y) / 2;
+    path += ` Q ${current.x.toFixed(2)} ${current.y.toFixed(2)} ${midX.toFixed(2)} ${midY.toFixed(2)}`;
+  }
+  const last = points[points.length - 1];
+  path += ` T ${last.x.toFixed(2)} ${last.y.toFixed(2)}`;
+  return path;
 }
 
 export function Sparkline({
@@ -158,8 +173,9 @@ export function Sparkline({
   height?: number;
 }) {
   const width = 320;
-  const line = pathFor(values.length ? values : [0, 0], width, height);
-  const area = line ? `${line} L ${width} ${height} L 0 ${height} Z` : '';
+  const safeValues = values.length ? values : [0, 0];
+  const line = smoothPath(safeValues, width, height);
+  const area = line ? `${line} L ${width} ${height - 6} L 0 ${height - 6} Z` : '';
   return (
     <View accessibilityLabel={`Activity trend: ${values.join(', ')}`} style={{ height }}>
       <Svg width="100%" height={height} viewBox={`0 0 ${width} ${height}`} preserveAspectRatio="none">
@@ -324,12 +340,7 @@ export type TrendSeries = {
 };
 
 function scaledPath(values: number[], width: number, height: number, maxValue: number) {
-  if (!values.length) return '';
-  return values.map((value, index) => {
-    const x = values.length === 1 ? width / 2 : index * (width / (values.length - 1));
-    const y = height - 10 - (value / Math.max(1, maxValue)) * (height - 20);
-    return `${index === 0 ? 'M' : 'L'} ${x.toFixed(2)} ${y.toFixed(2)}`;
-  }).join(' ');
+  return smoothPath(values, width, height, maxValue);
 }
 
 export function MultiTrendChart({
