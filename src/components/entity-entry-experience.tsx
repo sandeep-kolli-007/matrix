@@ -5,6 +5,8 @@ import { EntityIcon } from './entity-icon';
 import { EntityFieldInput } from './entity-field-input';
 import { HapticPressable as Pressable } from './haptic-pressable';
 import { TapValue } from './tap-value';
+import { TaskProjectPicker } from './task-project-picker';
+import { selectTaskProject } from '@/data/task-projects';
 import type { EntityField } from '@/data/entity-fields';
 import type { LifeEntity } from '@/data/lifeos-store';
 
@@ -21,6 +23,9 @@ type Props = {
   onTitleChange: (value: string) => void;
   values: Record<string, string>;
   onChange: (key: string, value: string) => void;
+  onValuesChange?: (values: Record<string, string>) => void;
+  relatedIds?: string[];
+  onRelatedIdsChange?: (ids: string[]) => void;
   fields: EntityField[];
   records: LifeEntity[];
   editingId?: string;
@@ -391,7 +396,29 @@ function WorkEntry(props: Props) {
         </View>
       ) : null}
       <View style={s.tileGrid}>
-        {fields.filter(field => !(type === 'Task' && field.key === 'priority')).map((field, index) => <FieldTile key={field.key} field={field} value={values[field.key] ?? ''} onChange={value => onChange(field.key, value)} palette={p} accent={accent} wide={index >= 2} />)}
+        {fields.filter(field => !(type === 'Task' && field.key === 'priority')).map((field, index) => {
+          const linked = (type === 'Task' && field.key === 'project') || (type === 'Habit' && field.key === 'goal');
+          if (linked) {
+            return (
+              <View key={field.key} style={[s.fieldTile, s.fieldTileWide, { backgroundColor: p.card, borderColor: p.line }]}>
+                <Text style={[s.fieldLabel, { color: p.muted }]}>PART OF · OPTIONAL</Text>
+                <TaskProjectPicker
+                  records={props.records}
+                  taskId={props.editingId}
+                  value={values[field.key + 'Id'] ?? ''}
+                  legacyName={values[field.key] ?? ''}
+                  palette={p}
+                  onChange={entity => {
+                    const next = selectTaskProject(values, props.relatedIds ?? [], entity, field.key as 'project' | 'goal');
+                    props.onValuesChange?.(next.values);
+                    props.onRelatedIdsChange?.(next.relatedIds);
+                  }}
+                />
+              </View>
+            );
+          }
+          return <FieldTile key={field.key} field={field} value={values[field.key] ?? ''} onChange={value => onChange(field.key, value)} palette={p} accent={accent} wide={index >= 2} />;
+        })}
       </View>
     </>
   );
@@ -409,7 +436,7 @@ export function EntityEntryExperience(props: Props) {
   else if (assets.has(type)) body = <AssetEntry {...props} />;
   else if (learning.has(type)) body = <LearningEntry {...props} />;
   else if (work.has(type)) body = <WorkEntry {...props} />;
-  else body = <div /> as never;
+  else body = null;
 
   if (!body) {
     body = (
