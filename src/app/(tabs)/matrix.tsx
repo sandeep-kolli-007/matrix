@@ -1,9 +1,10 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { SymbolView } from 'expo-symbols';
-import { router } from 'expo-router';
+import { router, useLocalSearchParams } from 'expo-router';
 
+import { EntityIcon } from '@/components/entity-icon';
 import { HapticPressable as Pressable } from '@/components/haptic-pressable';
 import { BalanceBar } from '@/components/reference-visuals';
 import { useRecords } from '@/components/use-records';
@@ -67,10 +68,21 @@ const positions = [
 ] as const;
 
 export default function MatrixScreen() {
+  const params = useLocalSearchParams<{ focus?: string }>();
   const records = useRecords();
   const { appearance } = useLifeOS();
   const p = matrixTheme(isPreviewReviewMode ? 'dark' : appearance);
   const [mode, setMode] = useState<Mode>('Life');
+  const [selectedLabel, setSelectedLabel] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!params.focus) return;
+    const target = definitions.Life.find(item => item.label === params.focus);
+    if (target) {
+      setMode('Life');
+      setSelectedLabel(target.label);
+    }
+  }, [params.focus]);
 
   const bubbles = useMemo(() => {
     const base = definitions[mode];
@@ -86,6 +98,11 @@ export default function MatrixScreen() {
       return { ...def, count, recent, completion, share };
     });
   }, [mode, records.items]);
+
+  const selectedBubble = bubbles.find(item => item.label === selectedLabel) ?? null;
+  const selectedRecords = selectedBubble
+    ? records.items.filter(selectedBubble.match).sort((a, b) => b.updatedAt.localeCompare(a.updatedAt)).slice(0, 6)
+    : [];
 
   return (
     <SafeAreaView edges={['top']} style={[s.safe, { backgroundColor: p.bg }]}>
@@ -129,14 +146,14 @@ export default function MatrixScreen() {
             return (
               <Pressable
                 key={bubble.label}
-                onPress={() => router.push('/insights')}
+                onPress={() => setSelectedLabel(current => current === bubble.label ? null : bubble.label)}
                 style={[
                   s.bubble,
                   pos,
                   {
                     borderColor: bubble.color,
                     shadowColor: bubble.color,
-                    backgroundColor: '#0B1522',
+                    backgroundColor: selectedLabel === bubble.label ? `${bubble.color}24` : '#0B1522',
                   },
                 ]}
               >
@@ -192,6 +209,39 @@ export default function MatrixScreen() {
           </View>
         </View>
 
+        {selectedBubble ? (
+          <View style={[s.recordsCard, { backgroundColor: p.card, borderColor: p.line }]}>
+            <View style={s.recordsHeader}>
+              <View>
+                <Text style={[s.recordsTitle, { color: p.text }]}>{selectedBubble.label}</Text>
+                <Text style={[s.recordsSubtitle, { color: p.muted }]}>{selectedBubble.count} saved records</Text>
+              </View>
+              <Pressable onPress={() => setSelectedLabel(null)} style={[s.closeSelection, { backgroundColor: p.raised }]}>
+                <SymbolView name={{ ios: 'xmark', android: 'close', web: 'close' }} size={14} tintColor={p.muted} />
+              </Pressable>
+            </View>
+            {selectedRecords.map((item, index) => {
+              const type = String(item.metadata.entityType ?? item.kind);
+              return (
+                <Pressable
+                  key={item.id}
+                  onPress={() => router.navigate({ pathname: '/entities', params: { id: item.id } })}
+                  style={[s.recordRow, index > 0 && { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: p.line }]}
+                >
+                  <View style={[s.recordIcon, { backgroundColor: `${selectedBubble.color}18` }]}>
+                    <EntityIcon type={type} color={selectedBubble.color} size={17} />
+                  </View>
+                  <View style={s.recordFlex}>
+                    <Text numberOfLines={1} style={[s.recordTitle, { color: p.text }]}>{item.title}</Text>
+                    <Text numberOfLines={1} style={[s.recordMeta, { color: p.muted }]}>{type} · {new Date(item.updatedAt).toLocaleDateString()}</Text>
+                  </View>
+                  <SymbolView name={{ ios: 'chevron.right', android: 'chevron_right', web: 'chevron_right' }} size={13} tintColor={p.muted} />
+                </Pressable>
+              );
+            })}
+          </View>
+        ) : null}
+
         <View style={s.summaryRow}>
           <View style={[s.summaryCard, { backgroundColor: p.card }]}>
             <Text style={[s.summaryValue, { color: p.text }]}>{records.items.length}</Text>
@@ -236,6 +286,16 @@ const s = StyleSheet.create({
   balanceList: { gap: 8 },
   metricRow: { gap: 2 },
   metricNote: { fontSize: 8.4, marginLeft: 122, marginTop: -2 },
+  recordsCard: { borderRadius: 20, borderWidth: 1, paddingHorizontal: 13, marginTop: 12, overflow: 'hidden' },
+  recordsHeader: { minHeight: 54, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  recordsTitle: { fontSize: 14, fontWeight: '700' },
+  recordsSubtitle: { fontSize: 9, marginTop: 2 },
+  closeSelection: { width: 30, height: 30, borderRadius: 15, alignItems: 'center', justifyContent: 'center' },
+  recordRow: { minHeight: 56, flexDirection: 'row', alignItems: 'center', gap: 9, paddingVertical: 7 },
+  recordIcon: { width: 34, height: 34, borderRadius: 11, alignItems: 'center', justifyContent: 'center' },
+  recordFlex: { flex: 1 },
+  recordTitle: { fontSize: 11.5, fontWeight: '600' },
+  recordMeta: { fontSize: 8.6, marginTop: 3 },
   summaryRow: { flexDirection: 'row', gap: 9, marginTop: 10 },
   summaryCard: { flex: 1, minHeight: 74, borderRadius: 17, padding: 13, justifyContent: 'center' },
   summaryValue: { fontSize: 21, fontWeight: '700', letterSpacing: -0.5 },
