@@ -16,7 +16,6 @@ type Mode = 'Life' | 'Plans' | 'Growth' | 'Assets';
 
 type Bubble = {
   label: string;
-  value: number;
   color: string;
   ios: string;
   other: string;
@@ -25,36 +24,36 @@ type Bubble = {
 
 const definitions: Record<Mode, Bubble[]> = {
   Life: [
-    { label: 'Health', value: 0, color: '#2FE394', ios: 'heart.fill', other: 'favorite', match: item => item.metadata.group === 'Health' },
-    { label: 'Finance', value: 0, color: '#FFBD39', ios: 'banknote.fill', other: 'payments', match: item => item.metadata.group === 'Finance' },
-    { label: 'Work', value: 0, color: '#3A91FF', ios: 'briefcase.fill', other: 'work', match: item => item.metadata.group === 'Productivity' },
-    { label: 'Relationships', value: 0, color: '#FF5A8B', ios: 'person.2.fill', other: 'group', match: item => item.metadata.group === 'People' },
-    { label: 'Learning', value: 0, color: '#9B68FF', ios: 'book.fill', other: 'menu_book', match: item => item.metadata.group === 'Learning' },
-    { label: 'Lifestyle', value: 0, color: '#31C8DC', ios: 'leaf.fill', other: 'spa', match: item => ['Planning', 'Other'].includes(String(item.metadata.group)) },
+    { label: 'Health', color: '#2FE394', ios: 'heart.fill', other: 'favorite', match: item => item.metadata.group === 'Health' },
+    { label: 'Finance', color: '#FFBD39', ios: 'banknote.fill', other: 'payments', match: item => item.metadata.group === 'Finance' },
+    { label: 'Work', color: '#3A91FF', ios: 'briefcase.fill', other: 'work', match: item => item.metadata.group === 'Productivity' },
+    { label: 'Relationships', color: '#FF5A8B', ios: 'person.2.fill', other: 'group', match: item => item.metadata.group === 'People' },
+    { label: 'Learning', color: '#9B68FF', ios: 'book.fill', other: 'menu_book', match: item => item.metadata.group === 'Learning' },
+    { label: 'Lifestyle', color: '#31C8DC', ios: 'leaf.fill', other: 'spa', match: item => ['Planning', 'Other'].includes(String(item.metadata.group)) },
   ],
   Plans: [
-    { label: 'Tasks', value: 0, color: '#3A91FF', ios: 'checkmark.circle.fill', other: 'task_alt', match: item => item.kind === 'task' },
-    { label: 'Events', value: 0, color: '#9B68FF', ios: 'calendar', other: 'event', match: item => ['event', 'meeting'].includes(item.kind) },
-    { label: 'Trips', value: 0, color: '#31C8DC', ios: 'airplane', other: 'flight', match: item => ['trip', 'itinerary'].includes(item.kind) },
-    { label: 'Reminders', value: 0, color: '#FFBD39', ios: 'bell.fill', other: 'notifications', match: item => item.kind === 'reminder' },
-    { label: 'Routines', value: 0, color: '#2FE394', ios: 'repeat', other: 'repeat', match: item => ['routine', 'habit'].includes(item.kind) },
-    { label: 'Reservations', value: 0, color: '#FF5A8B', ios: 'ticket.fill', other: 'confirmation_number', match: item => item.kind === 'reservation' },
+    { label: 'Tasks', color: '#3A91FF', ios: 'checkmark.circle.fill', other: 'task_alt', match: item => item.kind === 'task' },
+    { label: 'Events', color: '#9B68FF', ios: 'calendar', other: 'event', match: item => ['event', 'meeting'].includes(item.kind) },
+    { label: 'Trips', color: '#31C8DC', ios: 'airplane', other: 'flight', match: item => ['trip', 'itinerary'].includes(item.kind) },
+    { label: 'Reminders', color: '#FFBD39', ios: 'bell.fill', other: 'notifications', match: item => item.kind === 'reminder' },
+    { label: 'Routines', color: '#2FE394', ios: 'repeat', other: 'repeat', match: item => ['routine', 'habit'].includes(item.kind) },
+    { label: 'Reservations', color: '#FF5A8B', ios: 'ticket.fill', other: 'confirmation_number', match: item => item.kind === 'reservation' },
   ],
   Growth: [
-    { label: 'Goals', value: 0, color: '#9B68FF', ios: 'target', other: 'track_changes', match: item => item.kind === 'goal' },
-    { label: 'Habits', value: 0, color: '#2FE394', ios: 'repeat.circle.fill', other: 'repeat', match: item => item.kind === 'habit' },
-    { label: 'Skills', value: 0, color: '#31C8DC', ios: 'brain.head.profile', other: 'psychology', match: item => item.kind === 'skill' },
-    { label: 'Courses', value: 0, color: '#3A91FF', ios: 'graduationcap.fill', other: 'school', match: item => ['course', 'lesson'].includes(item.kind) },
-    { label: 'Practice', value: 0, color: '#FFBD39', ios: 'figure.mind.and.body', other: 'fitness_center', match: item => item.kind === 'practice' },
-    { label: 'Milestones', value: 0, color: '#FF5A8B', ios: 'flag.fill', other: 'flag', match: item => item.kind === 'milestone' },
+    { label: 'Goals', color: '#9B68FF', ios: 'target', other: 'track_changes', match: item => item.kind === 'goal' },
+    { label: 'Habits', color: '#2FE394', ios: 'repeat.circle.fill', other: 'repeat', match: item => item.kind === 'habit' },
+    { label: 'Skills', color: '#31C8DC', ios: 'brain.head.profile', other: 'psychology', match: item => item.kind === 'skill' },
+    { label: 'Courses', color: '#3A91FF', ios: 'graduationcap.fill', other: 'school', match: item => ['course', 'lesson'].includes(item.kind) },
+    { label: 'Practice', color: '#FFBD39', ios: 'figure.mind.and.body', other: 'fitness_center', match: item => item.kind === 'practice' },
+    { label: 'Milestones', color: '#FF5A8B', ios: 'flag.fill', other: 'flag', match: item => item.kind === 'milestone' },
   ],
   Assets: [
-    { label: 'Assets', value: 0, color: '#3A91FF', ios: 'shippingbox.fill', other: 'inventory_2', match: item => item.kind === 'asset' },
-    { label: 'Property', value: 0, color: '#2FE394', ios: 'house.fill', other: 'home', match: item => item.kind === 'property' },
-    { label: 'Vehicles', value: 0, color: '#31C8DC', ios: 'car.fill', other: 'directions_car', match: item => item.kind === 'vehicle' },
-    { label: 'Accounts', value: 0, color: '#FFBD39', ios: 'building.columns.fill', other: 'account_balance', match: item => item.kind === 'account' },
-    { label: 'Investments', value: 0, color: '#9B68FF', ios: 'chart.line.uptrend.xyaxis', other: 'monitoring', match: item => item.kind === 'investment' },
-    { label: 'Insurance', value: 0, color: '#FF5A8B', ios: 'shield.fill', other: 'shield', match: item => item.kind === 'insurance' },
+    { label: 'Assets', color: '#3A91FF', ios: 'shippingbox.fill', other: 'inventory_2', match: item => item.kind === 'asset' },
+    { label: 'Property', color: '#2FE394', ios: 'house.fill', other: 'home', match: item => item.kind === 'property' },
+    { label: 'Vehicles', color: '#31C8DC', ios: 'car.fill', other: 'directions_car', match: item => item.kind === 'vehicle' },
+    { label: 'Accounts', color: '#FFBD39', ios: 'building.columns.fill', other: 'account_balance', match: item => item.kind === 'account' },
+    { label: 'Investments', color: '#9B68FF', ios: 'chart.line.uptrend.xyaxis', other: 'monitoring', match: item => item.kind === 'investment' },
+    { label: 'Insurance', color: '#FF5A8B', ios: 'shield.fill', other: 'shield', match: item => item.kind === 'insurance' },
   ],
 };
 
@@ -75,14 +74,16 @@ export default function MatrixScreen() {
 
   const bubbles = useMemo(() => {
     const base = definitions[mode];
-    const counts = base.map(def => records.items.filter(def.match).length);
-    const max = Math.max(1, ...counts);
-    return base.map((def, index) => {
-      const count = counts[index];
-      const completionBoost = records.items.filter(item => def.match(item) && item.metadata.completed === true).length;
-      const recency = records.items.filter(item => def.match(item) && Date.now() - Date.parse(item.updatedAt) < 7 * 86400000).length;
-      const score = Math.min(96, Math.round(42 + (count / max) * 34 + Math.min(14, recency * 2) + Math.min(6, completionBoost)));
-      return { ...def, value: score, count };
+    const totalInMode = Math.max(1, records.items.filter(item => base.some(def => def.match(item))).length);
+    return base.map((def) => {
+      const matched = records.items.filter(def.match);
+      const count = matched.length;
+      const recent = matched.filter(item => Date.now() - Date.parse(item.updatedAt) < 7 * 86400000).length;
+      const completable = matched.filter(item => item.metadata.completed === true || item.metadata.completed === false);
+      const completed = completable.filter(item => item.metadata.completed === true).length;
+      const completion = completable.length ? Math.round(completed / completable.length * 100) : null;
+      const share = Math.round(count / totalInMode * 100);
+      return { ...def, count, recent, completion, share };
     });
   }, [mode, records.items]);
 
@@ -141,7 +142,8 @@ export default function MatrixScreen() {
               >
                 <SymbolView name={{ ios: bubble.ios as never, android: bubble.other as never, web: bubble.other as never }} size={19} tintColor={bubble.color} />
                 <Text numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.68} style={s.bubbleLabel}>{bubble.label}</Text>
-                <Text style={[s.bubbleValue, { color: bubble.color }]}>{bubble.value}%</Text>
+                <Text style={[s.bubbleValue, { color: bubble.color }]}>{bubble.count}</Text>
+                <Text style={s.bubbleSub}>{bubble.count === 1 ? 'record' : 'records'}</Text>
               </Pressable>
             );
           })}
@@ -163,22 +165,29 @@ export default function MatrixScreen() {
 
         <View style={[s.balanceCard, { backgroundColor: p.card, borderColor: p.line }]}>
           <View style={s.balanceHeader}>
-            <Text style={[s.balanceTitle, { color: p.text }]}>{mode} Balance</Text>
+            <View>
+              <Text style={[s.balanceTitle, { color: p.text }]}>{mode} distribution</Text>
+              <Text style={[s.balanceSubtitle, { color: p.muted }]}>Share of records in this view</Text>
+            </View>
             <Pressable onPress={() => router.push('/insights')}>
-              <Text style={[s.seeDetails, { color: p.accent }]}>See details</Text>
+              <Text style={[s.seeDetails, { color: p.accent }]}>Insights</Text>
             </Pressable>
           </View>
           <View style={s.balanceList}>
             {bubbles.map(bubble => (
-              <BalanceBar
-                key={bubble.label}
-                label={bubble.label}
-                value={bubble.value}
-                color={bubble.color}
-                textColor={p.text}
-                mutedColor={p.muted}
-                icon={<SymbolView name={{ ios: bubble.ios as never, android: bubble.other as never, web: bubble.other as never }} size={14} tintColor={bubble.color} />}
-              />
+              <View key={bubble.label} style={s.metricRow}>
+                <BalanceBar
+                  label={bubble.label}
+                  value={bubble.share}
+                  color={bubble.color}
+                  textColor={p.text}
+                  mutedColor={p.muted}
+                  icon={<SymbolView name={{ ios: bubble.ios as never, android: bubble.other as never, web: bubble.other as never }} size={14} tintColor={bubble.color} />}
+                />
+                <Text style={[s.metricNote, { color: p.muted }]}>
+                  {bubble.count} saved · {bubble.recent} updated this week{bubble.completion === null ? '' : ` · ${bubble.completion}% complete`}
+                </Text>
+              </View>
             ))}
           </View>
         </View>
@@ -216,13 +225,17 @@ const s = StyleSheet.create({
   centerText: { color: '#FFFFFF', fontSize: 16, fontWeight: '750' as '700' },
   bubble: { position: 'absolute', width: 82, height: 82, borderRadius: 41, borderWidth: 1.5, alignItems: 'center', justifyContent: 'center', shadowOpacity: 0.72, shadowRadius: 14, elevation: 8 },
   bubbleLabel: { width: 70, textAlign: 'center', color: '#F8FAFF', fontSize: 9.5, fontWeight: '650' as '600', marginTop: 3 },
-  bubbleValue: { fontSize: 10.5, fontWeight: '700', marginTop: 1 },
+  bubbleValue: { fontSize: 11.5, fontWeight: '700', marginTop: 1 },
+  bubbleSub: { color: '#91A0B7', fontSize: 7.8, marginTop: -1 },
   particle: { position: 'absolute', width: 4, height: 4, borderRadius: 2, opacity: 0.75 },
   balanceCard: { borderRadius: 20, borderWidth: 1, padding: 15, marginTop: 12 },
   balanceHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 9 },
   balanceTitle: { fontSize: 14.5, fontWeight: '700' },
+  balanceSubtitle: { fontSize: 9.3, marginTop: 2 },
   seeDetails: { fontSize: 10.5, fontWeight: '600' },
-  balanceList: { gap: 4 },
+  balanceList: { gap: 8 },
+  metricRow: { gap: 2 },
+  metricNote: { fontSize: 8.4, marginLeft: 122, marginTop: -2 },
   summaryRow: { flexDirection: 'row', gap: 9, marginTop: 10 },
   summaryCard: { flex: 1, minHeight: 74, borderRadius: 17, padding: 13, justifyContent: 'center' },
   summaryValue: { fontSize: 21, fontWeight: '700', letterSpacing: -0.5 },
