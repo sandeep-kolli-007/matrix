@@ -1,4 +1,5 @@
 name: Deploy MATRIX Web to GitHub Pages
+# Redeploy reverted app revision
 
 on:
   push:
