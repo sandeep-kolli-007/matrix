@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react';
 import { ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { SymbolView } from 'expo-symbols';
+import { EntityIcon } from './entity-icon';
 
 import { TapValue } from './tap-value';
 import { EntityFieldInput } from './entity-field-input';
