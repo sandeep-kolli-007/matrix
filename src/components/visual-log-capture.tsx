@@ -3,6 +3,8 @@ import { ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { SymbolView } from 'expo-symbols';
 
 import { TapValue } from './tap-value';
+import { EntityFieldInput } from './entity-field-input';
+import { fieldsForEntity } from '@/data/entity-fields';
 import { HapticPressable as Pressable } from '@/components/haptic-pressable';
 import { readLogItems, readWorkoutSets, withWorkoutSets, type WorkoutSet } from '@/data/log-items';
 import { AnatomySelector } from './anatomy-selector';
@@ -188,6 +190,15 @@ export function WorkoutCapture({ values, palette: p, onChange }: Props) {
         {metric(stats.volume ? Math.round(stats.volume).toLocaleString() : '—', 'Volume kg', success, p)}
       </View>
 
+      <View style={s.sessionMetaGrid}>
+        {fieldsForEntity('Workout').filter(field => ['date', 'time', 'duration', 'heartRate'].includes(field.key)).map(field => (
+          <View key={field.key} style={[s.sessionMetaCard, { backgroundColor: p.card ?? p.panel, borderColor: p.line }]}>
+            <Text style={[s.sessionMetaLabel, { color: p.muted }]}>{field.label}</Text>
+            <EntityFieldInput field={field} value={String(values[field.key] ?? '')} onChange={value => onChange?.(field.key, value)} palette={p} />
+          </View>
+        ))}
+      </View>
+
       <View>
         <View style={s.sectionHead}>
           <View>
@@ -363,6 +374,14 @@ export function MealCapture({ values, palette: p, onChange }: Props) {
         })}
       </ScrollView>
 
+      <View style={s.mealMetaRow}>
+        {fieldsForEntity('Meal').filter(field => ['date', 'time'].includes(field.key)).map(field => (
+          <View key={field.key} style={[s.mealMetaCard, { backgroundColor: p.card ?? p.panel, borderColor: p.line }]}>
+            <EntityFieldInput field={field} value={String(values[field.key] ?? '')} onChange={value => onChange?.(field.key, value)} palette={p} />
+          </View>
+        ))}
+      </View>
+
       <View style={s.macroGrid}>
         {metric(Math.round(totals.calories) || '—', 'kcal', '#FFB43C', p)}
         {metric(Math.round(totals.protein) || '—', 'Protein g', '#35D99B', p)}
@@ -438,6 +457,121 @@ export function MealCapture({ values, palette: p, onChange }: Props) {
   );
 }
 
+
+export function WardrobeCapture({ values, palette: p, onChange }: Props) {
+  const accent = p.accent ?? '#9B68FF';
+  const items = readLogItems(values.logItems);
+  const commit = (next: typeof items) => onChange?.('logItems', JSON.stringify(next));
+  const occasions = ['Work', 'Gym', 'Outdoor', 'Home', 'Dinner', 'Travel'];
+  const feelings = ['Comfortable', 'Sharp', 'Relaxed', 'Confident', 'Experimental'];
+  const slots = ['Top', 'Bottom', 'Footwear', 'Layer', 'Accessory'];
+
+  function addSlot(slot: string) {
+    commit([...items, { name: '', slot, color: '' }]);
+  }
+
+  function updateItem(index: number, key: string, value: string) {
+    commit(items.map((item, i) => i === index ? { ...item, [key]: value } : item));
+  }
+
+  return (
+    <View style={s.root}>
+      <View style={[s.wardrobeHero, { backgroundColor: p.card ?? p.panel, borderColor: p.line }]}>
+        <View style={[s.wardrobeIcon, { backgroundColor: '#9B68FF20' }]}>
+          <SymbolView name={{ ios: 'tshirt.fill', android: 'checkroom', web: 'checkroom' }} size={30} tintColor="#9B68FF" />
+        </View>
+        <View style={s.flex}>
+          <Text style={[s.eyebrow, { color: '#9B68FF' }]}>OUTFIT BUILDER</Text>
+          <Text style={[s.heading, { color: p.text }]}>What are you wearing?</Text>
+          <Text style={[s.support, { color: p.muted }]}>Build the outfit by piece instead of filling a form.</Text>
+        </View>
+      </View>
+
+      <View>
+        <Text style={[s.sectionTitle, { color: p.text }]}>Occasion</Text>
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={s.choiceRail}>
+          {occasions.map(value => {
+            const active = values.occasion === value;
+            return (
+              <Pressable key={value} onPress={() => onChange?.('occasion', value)} style={[s.mealType, { backgroundColor: active ? p.selected ?? p.raised : p.card ?? p.panel, borderColor: active ? accent : p.line }]}>
+                <Text style={[s.mealTypeText, { color: active ? accent : p.text }]}>{value}</Text>
+              </Pressable>
+            );
+          })}
+        </ScrollView>
+      </View>
+
+      <View>
+        <Text style={[s.sectionTitle, { color: p.text }]}>How does it feel?</Text>
+        <View style={s.feelingGrid}>
+          {feelings.map(value => {
+            const active = values.feeling === value;
+            return (
+              <Pressable key={value} onPress={() => onChange?.('feeling', value)} style={[s.feelingCard, { backgroundColor: active ? p.selected ?? p.raised : p.card ?? p.panel, borderColor: active ? accent : p.line }]}>
+                <Text style={[s.feelingText, { color: active ? accent : p.text }]}>{value}</Text>
+              </Pressable>
+            );
+          })}
+        </View>
+      </View>
+
+      <View style={s.sectionHead}>
+        <View>
+          <Text style={[s.sectionTitle, { color: p.text }]}>Outfit pieces</Text>
+          <Text style={[s.sectionCopy, { color: p.muted }]}>{items.length ? `${items.length} pieces added` : 'Start with a slot below'}</Text>
+        </View>
+      </View>
+
+      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={s.slotRail}>
+        {slots.map(slot => (
+          <Pressable key={slot} onPress={() => addSlot(slot)} style={[s.slotCard, { backgroundColor: p.card ?? p.panel, borderColor: p.line }]}>
+            <View style={[s.slotIcon, { backgroundColor: '#9B68FF18' }]}>
+              <SymbolView name={{ ios: 'plus', android: 'add', web: 'add' }} size={16} tintColor="#9B68FF" />
+            </View>
+            <Text style={[s.slotText, { color: p.text }]}>{slot}</Text>
+          </Pressable>
+        ))}
+      </ScrollView>
+
+      {items.map((item, index) => (
+        <View key={index} style={[s.outfitCard, { backgroundColor: p.card ?? p.panel, borderColor: p.line }]}>
+          <View style={[s.outfitSwatch, { backgroundColor: item.color ? item.color.toLowerCase() : '#9B68FF22' }]}>
+            <EntityIcon type="Wardrobe Log" color={accent} size={22} />
+          </View>
+          <View style={s.flex}>
+            <Text style={[s.outfitSlot, { color: accent }]}>{item.slot || 'Piece'}</Text>
+            <TextInput
+              value={item.name ?? ''}
+              onChangeText={value => updateItem(index, 'name', value)}
+              placeholder={`Name the ${String(item.slot || 'item').toLowerCase()}`}
+              placeholderTextColor={p.muted}
+              style={[s.outfitName, { color: p.text }]}
+            />
+            <TextInput
+              value={item.color ?? ''}
+              onChangeText={value => updateItem(index, 'color', value)}
+              placeholder="Color · optional"
+              placeholderTextColor={p.muted}
+              style={[s.outfitColor, { color: p.muted }]}
+            />
+          </View>
+          <Pressable onPress={() => commit(items.filter((_, i) => i !== index))} style={s.iconAction}>
+            <SymbolView name={{ ios: 'trash', android: 'delete_outline', web: 'delete_outline' }} size={17} tintColor={p.danger ?? '#FF6B78'} />
+          </Pressable>
+        </View>
+      ))}
+
+      {!items.length ? (
+        <View style={[s.emptyMeal, { backgroundColor: p.card ?? p.panel, borderColor: p.line }]}>
+          <SymbolView name={{ ios: 'tshirt', android: 'checkroom', web: 'checkroom' }} size={31} tintColor={p.muted} />
+          <Text style={[s.emptyWorkoutTitle, { color: p.text }]}>Build the outfit</Text>
+          <Text style={[s.emptyWorkoutCopy, { color: p.muted }]}>Add top, bottom, footwear and accessories as separate pieces.</Text>
+        </View>
+      ) : null}
+    </View>
+  );
+}
+
 const s = StyleSheet.create({
   root: { gap: 16, marginBottom: 22 },
   flex: { flex: 1 },
@@ -461,6 +595,9 @@ const s = StyleSheet.create({
   contextInput: { flex: 1, fontSize: 12.5, paddingVertical: 12 },
 
   workoutHero: { minHeight: 94, borderRadius: 22, borderWidth: 1, padding: 14, flexDirection: 'row', alignItems: 'center', gap: 12 },
+  sessionMetaGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
+  sessionMetaCard: { width: '48.5%', minHeight: 92, borderRadius: 16, borderWidth: 1, padding: 10 },
+  sessionMetaLabel: { fontSize: 8.5, fontWeight: '700', textTransform: 'uppercase', letterSpacing: 0.6, marginBottom: 5 },
   workoutHeroIcon: { width: 56, height: 56, borderRadius: 18, alignItems: 'center', justifyContent: 'center' },
   summaryStrip: { flexDirection: 'row', gap: 8 },
   metric: { flex: 1, minHeight: 70, borderRadius: 16, padding: 11, justifyContent: 'center' },
@@ -508,6 +645,8 @@ const s = StyleSheet.create({
   mealHero: { minHeight: 92, borderRadius: 22, borderWidth: 1, padding: 14, flexDirection: 'row', alignItems: 'center', gap: 12 },
   mealPlate: { width: 56, height: 56, borderRadius: 28, borderWidth: 1, alignItems: 'center', justifyContent: 'center' },
   mealTypeRail: { gap: 7, paddingRight: 14 },
+  mealMetaRow: { flexDirection: 'row', gap: 8 },
+  mealMetaCard: { flex: 1, minHeight: 74, borderRadius: 15, borderWidth: 1, padding: 8 },
   mealType: { minHeight: 38, borderRadius: 19, borderWidth: 1, paddingHorizontal: 14, alignItems: 'center', justifyContent: 'center' },
   mealTypeText: { fontSize: 10.5, fontWeight: '600' },
   macroGrid: { flexDirection: 'row', gap: 7 },
@@ -527,4 +666,19 @@ const s = StyleSheet.create({
   foodField: { flex: 1, gap: 4 },
   foodFieldLabel: { fontSize: 8.5, textAlign: 'center', fontWeight: '600' },
   emptyMeal: { minHeight: 145, borderRadius: 20, borderWidth: 1, alignItems: 'center', justifyContent: 'center', padding: 18 },
+  wardrobeHero: { minHeight: 92, borderRadius: 22, borderWidth: 1, padding: 14, flexDirection: 'row', alignItems: 'center', gap: 12 },
+  wardrobeIcon: { width: 56, height: 56, borderRadius: 18, alignItems: 'center', justifyContent: 'center' },
+  choiceRail: { gap: 7, paddingRight: 14 },
+  feelingGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 7 },
+  feelingCard: { minHeight: 42, borderRadius: 14, borderWidth: 1, paddingHorizontal: 12, alignItems: 'center', justifyContent: 'center' },
+  feelingText: { fontSize: 10.5, fontWeight: '600' },
+  slotRail: { gap: 8, paddingRight: 14 },
+  slotCard: { width: 94, minHeight: 78, borderRadius: 16, borderWidth: 1, padding: 10, justifyContent: 'space-between' },
+  slotIcon: { width: 30, height: 30, borderRadius: 10, alignItems: 'center', justifyContent: 'center' },
+  slotText: { fontSize: 10.5, fontWeight: '600' },
+  outfitCard: { minHeight: 90, borderRadius: 18, borderWidth: 1, padding: 11, flexDirection: 'row', alignItems: 'center', gap: 10 },
+  outfitSwatch: { width: 52, height: 64, borderRadius: 14, alignItems: 'center', justifyContent: 'center' },
+  outfitSlot: { fontSize: 8.5, fontWeight: '700', textTransform: 'uppercase', letterSpacing: 0.6 },
+  outfitName: { fontSize: 13.5, fontWeight: '600', paddingVertical: 4 },
+  outfitColor: { fontSize: 10.5, paddingVertical: 3 },
 });
