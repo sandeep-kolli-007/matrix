@@ -5,6 +5,7 @@ import { SymbolView } from 'expo-symbols';
 import { router } from 'expo-router';
 
 import { EntityIcon } from '@/components/entity-icon';
+import { useRecords } from '@/components/use-records';
 import { HapticPressable as Pressable } from '@/components/haptic-pressable';
 import { entityCatalog } from '@/data/entity-catalog';
 import { isPreviewReviewMode } from '@/data/matrix-source';
@@ -21,14 +22,11 @@ const capture = [
   { label: 'Link', type: 'Bookmark', ios: 'link', other: 'link' },
 ] as const;
 
-const suggestions = [
-  { title: 'Log Workout', type: 'Workout', copy: 'Capture exercise and sets', ios: 'figure.run', other: 'fitness_center', tone: '#37D6D2' },
-  { title: 'Save Receipt', type: 'Expense', copy: 'Add purchase or bill', ios: 'doc.text.fill', other: 'receipt_long', tone: '#E9EDF3' },
-  { title: 'Add Expense', type: 'Expense', copy: 'Track today’s spend', ios: 'indianrupeesign.circle.fill', other: 'payments', tone: '#FF8A52' },
-] as const;
+const fallbackQuick = ['Task', 'Expense', 'Workout', 'Meal'];
 
 export default function AddScreen() {
   const { appearance } = useLifeOS();
+  const records = useRecords();
   const p = matrixTheme(isPreviewReviewMode ? 'dark' : appearance);
   const { width } = useWindowDimensions();
   const [query, setQuery] = useState('');
@@ -42,6 +40,22 @@ export default function AddScreen() {
     if (showAll) return entityCatalog;
     return featured.map(name => entityCatalog.find(item => item.name === name)!).filter(Boolean);
   }, [normalized, showAll]);
+
+  const recentTypes = useMemo(() => {
+    const seen = new Set<string>();
+    const names = [...records.items]
+      .sort((a, b) => b.updatedAt.localeCompare(a.updatedAt))
+      .map(item => String(item.metadata.entityType ?? ''))
+      .filter(name => {
+        if (!name || seen.has(name)) return false;
+        seen.add(name);
+        return true;
+      })
+      .slice(0, 4);
+    return (names.length ? names : fallbackQuick)
+      .map(name => entityCatalog.find(item => item.name === name))
+      .filter((item): item is NonNullable<typeof item> => Boolean(item));
+  }, [records.items]);
 
   function open(type: string) {
     router.navigate({ pathname: '/entities', params: { type, request: String(Date.now()) } });
@@ -63,7 +77,7 @@ export default function AddScreen() {
             <View style={s.header}>
               <View>
                 <Text accessibilityRole="header" style={[s.title, { color: p.text }]}>Quick Add</Text>
-                <Text style={[s.subtitle, { color: p.muted }]}>Capture anything. MATRIX will organize it.</Text>
+                <Text style={[s.subtitle, { color: p.muted }]}>Choose what you want to capture.</Text>
               </View>
               <Pressable onPress={() => router.replace('/(tabs)')} style={[s.close, { backgroundColor: p.raised }]}>
                 <SymbolView name={{ ios: 'xmark', android: 'close', web: 'close' }} size={17} tintColor={p.text} />
@@ -105,20 +119,26 @@ export default function AddScreen() {
             {!normalized ? (
               <>
                 <View style={s.sectionHead}>
-                  <Text style={[s.sectionTitle, { color: p.text }]}>Smart Suggestions</Text>
-                  <Pressable onPress={() => setShowAll(true)}><Text style={[s.link, { color: p.accent }]}>See all</Text></Pressable>
+                  <Text style={[s.sectionTitle, { color: p.text }]}>Recent & quick</Text>
+                  <Pressable onPress={() => setShowAll(true)}><Text style={[s.link, { color: p.accent }]}>All types</Text></Pressable>
                 </View>
 
                 <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={s.suggestions}>
-                  {suggestions.map(card => (
-                    <Pressable key={card.title} onPress={() => open(card.type)} style={[s.suggestion, { backgroundColor: p.card, borderColor: p.line }]}>
-                      <View style={[s.suggestionIcon, { backgroundColor: `${card.tone}20` }]}>
-                        <SymbolView name={{ ios: card.ios, android: card.other, web: card.other }} size={18} tintColor={card.tone} />
-                      </View>
-                      <Text style={[s.suggestionTitle, { color: p.text }]}>{card.title}</Text>
-                      <Text style={[s.suggestionCopy, { color: p.muted }]}>{card.copy}</Text>
-                    </Pressable>
-                  ))}
+                  {recentTypes.map((item) => {
+                    const domain = matrixGroupColor(item.group, isPreviewReviewMode ? 'dark' : appearance);
+                    const savedCount = records.items.filter(record => String(record.metadata.entityType) === item.name).length;
+                    return (
+                      <Pressable key={item.name} onPress={() => open(item.name)} style={[s.suggestion, { backgroundColor: p.card, borderColor: p.line }]}>
+                        <View style={[s.suggestionIcon, { backgroundColor: domain.soft }]}>
+                          <EntityIcon type={item.name} size={18} color={domain.accent} />
+                        </View>
+                        <Text style={[s.suggestionTitle, { color: p.text }]}>{item.name}</Text>
+                        <Text style={[s.suggestionCopy, { color: p.muted }]}>
+                          {savedCount ? `${savedCount} saved · add another` : `Add ${item.name.toLowerCase()}`}
+                        </Text>
+                      </Pressable>
+                    );
+                  })}
                 </ScrollView>
               </>
             ) : null}
