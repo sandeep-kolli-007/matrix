@@ -6,7 +6,7 @@ import { router, useFocusEffect } from 'expo-router';
 
 import { EntityIcon } from '@/components/entity-icon';
 import { HapticPressable as Pressable } from '@/components/haptic-pressable';
-import { MicroBars, MultiTrendChart, entityDashboard } from '@/components/matrix-visuals';
+import { MicroBars, Sparkline, entityDashboard } from '@/components/matrix-visuals';
 import { formatLocalDate } from '@/data/entity-date';
 import { homeSummary } from '@/data/home-summary';
 import { LifeEntity, listEntities } from '@/data/lifeos-store';
@@ -79,10 +79,12 @@ export default function HomeScreen() {
   const habitRecords = items.filter(item => item.kind === 'habit');
   const habitDone = habitRecords.filter(item => item.metadata.completed === true).length;
 
-  const groupSeries = dashboard.groupTrends.slice(0, 5).map(item => {
-    const color = matrixGroupColor(item.label, reviewAppearance).accent;
-    return { label: item.label, color, values: item.values };
-  });
+  const activityValues = dashboard.dateKeys.map((_, index) =>
+    dashboard.groupTrends.reduce((sum, group) => sum + (group.values[index] ?? 0), 0)
+  );
+  const activityTotal = activityValues.reduce((sum, value) => sum + value, 0);
+  const activityAverage = activityValues.length ? activityTotal / activityValues.length : 0;
+  const activityPeak = Math.max(0, ...activityValues);
 
   const lifeAreas = dashboard.groupTrends.slice(0, 6).map(item => {
     const definition = matrixGroupColor(item.label, reviewAppearance);
@@ -286,15 +288,23 @@ export default function HomeScreen() {
         </View>
 
         <View style={[s.trendCard, { backgroundColor: p.card, borderColor: p.line }]}>
-          <View style={s.legend}>
-            {groupSeries.map(series => (
-              <View key={series.label} style={s.legendItem}>
-                <View style={[s.legendDot, { backgroundColor: series.color }]} />
-                <Text style={[s.legendText, { color: p.muted }]}>{series.label}</Text>
-              </View>
-            ))}
+          <View style={s.trendMetrics}>
+            <View>
+              <Text style={[s.trendMetricValue, { color: p.text }]}>{activityTotal}</Text>
+              <Text style={[s.trendMetricLabel, { color: p.muted }]}>14-day total</Text>
+            </View>
+            <View>
+              <Text style={[s.trendMetricValue, { color: p.text }]}>{activityAverage.toFixed(1)}</Text>
+              <Text style={[s.trendMetricLabel, { color: p.muted }]}>daily avg</Text>
+            </View>
+            <View>
+              <Text style={[s.trendMetricValue, { color: p.text }]}>{activityPeak}</Text>
+              <Text style={[s.trendMetricLabel, { color: p.muted }]}>peak day</Text>
+            </View>
           </View>
-          <MultiTrendChart series={groupSeries} palette={p} height={150} />
+          <View style={s.trendPlot}>
+            <Sparkline values={activityValues} palette={p} height={132} />
+          </View>
           <View style={s.axis}>
             <Text style={[s.axisText, { color: p.muted }]}>14 days ago</Text>
             <Text style={[s.axisText, { color: p.muted }]}>Today</Text>
