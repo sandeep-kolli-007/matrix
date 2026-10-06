@@ -3,7 +3,7 @@ import { StyleSheet, Text, View } from 'react-native';
 import { EntityFieldInput } from './entity-field-input';
 import { fieldsForEntity } from '@/data/entity-fields';
 import { logTotals, readLogItems, readWorkoutSets } from '@/data/log-items';
-import { MealCapture, MoodCapture, WorkoutCapture } from './visual-log-capture';
+import { MealCapture, MoodCapture, WardrobeCapture, WorkoutCapture } from './visual-log-capture';
 
 type Palette = { panel: string; raised: string; line: string; text: string; muted: string };
 type Props = { type: string; values: Record<string, unknown>; palette: Palette; onChange?: (key: string, value: string) => void };
@@ -13,6 +13,7 @@ export function SpecializedLog({ type, values, palette: p, onChange }: Props) {
   if (type === 'Mood Log') return <MoodCapture values={values} palette={p} onChange={onChange} />;
   if (type === 'Workout' && onChange) return <WorkoutCapture values={values} palette={p} onChange={onChange} />;
   if (type === 'Meal' && onChange) return <MealCapture values={values} palette={p} onChange={onChange} />;
+  if (type === 'Wardrobe Log' && onChange) return <WardrobeCapture values={values} palette={p} onChange={onChange} />;
   const items = readLogItems(values.logItems);
   const totals = logTotals(type, items);
   const food = type === 'Meal';
