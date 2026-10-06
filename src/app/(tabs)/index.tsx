@@ -256,7 +256,7 @@ export default function HomeScreen() {
             return (
               <Pressable
                 key={area.label}
-                onPress={() => router.navigate({ pathname: '/entities', params: { group: area.label } })}
+                onPress={() => router.navigate({ pathname: '/(tabs)/matrix', params: { focus: area.label } })}
                 style={[s.areaCard, { width: compact ? '48.6%' : '32%', backgroundColor: p.card, borderColor: p.line }]}
               >
                 <View style={s.areaTop}>
