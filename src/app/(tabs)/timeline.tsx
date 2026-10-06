@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { FlatList, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { FlatList, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { SymbolView } from 'expo-symbols';
 import { router } from 'expo-router';
@@ -28,16 +28,29 @@ export default function Timeline() {
   const p = matrixTheme(isPreviewReviewMode ? 'dark' : appearance);
   const [day, setDay] = useState(() => localDay(new Date()));
   const [picker, setPicker] = useState(false);
+  const [searchOpen, setSearchOpen] = useState(false);
+  const [query, setQuery] = useState('');
   const [filter, setFilter] = useState('All');
 
   const selected = new Date(`${day}T12:00:00`);
   const visible = useMemo(() => timelineRecords(records.items, day).filter(item => {
-    if (filter === 'All') return true;
-    if (filter === 'Tasks') return ['Task', 'Habit', 'Goal', 'Project', 'Milestone'].includes(String(item.metadata.entityType));
-    const expected = filters.find(item => item.label === filter)?.group;
-    const group = item.metadata.group ?? entityCatalog.find(type => type.name === item.metadata.entityType)?.group;
-    return expected ? group === expected : true;
-  }), [records.items, day, filter]);
+    if (filter !== 'All') {
+      if (filter === 'Tasks') {
+        if (!['Task', 'Habit', 'Goal', 'Project', 'Milestone'].includes(String(item.metadata.entityType))) return false;
+      } else {
+        const expected = filters.find(entry => entry.label === filter)?.group;
+        const group = item.metadata.group ?? entityCatalog.find(type => type.name === item.metadata.entityType)?.group;
+        if (expected && group !== expected) return false;
+      }
+    }
+
+    if (query.trim()) {
+      const haystack = `${item.title} ${item.details ?? ''} ${String(item.metadata.entityType ?? item.kind)} ${String(item.metadata.group ?? '')}`.toLowerCase();
+      if (!haystack.includes(query.trim().toLowerCase())) return false;
+    }
+
+    return true;
+  }), [records.items, day, filter, query]);
 
   return (
     <SafeAreaView edges={['top']} style={[s.safe, { backgroundColor: p.bg }]}>
@@ -53,14 +66,28 @@ export default function Timeline() {
             <View style={s.header}>
               <Text accessibilityRole="header" style={[s.title, { color: p.text }]}>Timeline</Text>
               <View style={s.actions}>
-                <Pressable accessibilityLabel="Search timeline" style={[s.circleButton, { backgroundColor: p.raised }]}>
-                  <SymbolView name={{ ios: 'magnifyingglass', android: 'search', web: 'search' }} size={18} tintColor={p.text} />
+                <Pressable accessibilityLabel="Search timeline" onPress={() => { setSearchOpen(v => !v); if (searchOpen) setQuery(''); }} style={[s.circleButton, { backgroundColor: p.raised }]}>
+                  <SymbolView name={{ ios: searchOpen ? 'xmark' : 'magnifyingglass', android: searchOpen ? 'close' : 'search', web: searchOpen ? 'close' : 'search' }} size={18} tintColor={p.text} />
                 </Pressable>
                 <Pressable accessibilityLabel="Choose date" onPress={() => setPicker(v => !v)} style={[s.circleButton, { backgroundColor: p.raised }]}>
                   <SymbolView name={{ ios: 'calendar', android: 'calendar_today', web: 'calendar_today' }} size={18} tintColor={p.text} />
                 </Pressable>
               </View>
             </View>
+
+            {searchOpen ? (
+              <View style={[s.searchBox, { backgroundColor: p.card, borderColor: query ? p.accent : p.line }]}>
+                <SymbolView name={{ ios: 'magnifyingglass', android: 'search', web: 'search' }} size={16} tintColor={p.muted} />
+                <TextInput
+                  autoFocus
+                  value={query}
+                  onChangeText={setQuery}
+                  placeholder="Search this day"
+                  placeholderTextColor={p.muted}
+                  style={[s.searchInput, { color: p.text }]}
+                />
+              </View>
+            ) : null}
 
             <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={s.filters}>
               {filters.map(item => {
@@ -174,6 +201,8 @@ const s = StyleSheet.create({
   title: { fontSize: 28, lineHeight: 34, fontWeight: '750' as '700', letterSpacing: -0.8 },
   actions: { flexDirection: 'row', gap: 8 },
   circleButton: { width: 38, height: 38, borderRadius: 19, alignItems: 'center', justifyContent: 'center' },
+  searchBox: { minHeight: 44, borderRadius: 14, borderWidth: 1, marginTop: 10, paddingHorizontal: 12, flexDirection: 'row', alignItems: 'center', gap: 8 },
+  searchInput: { flex: 1, fontSize: 12, paddingVertical: 10 },
   filters: { gap: 8, paddingVertical: 14 },
   filter: { minHeight: 34, borderRadius: 17, paddingHorizontal: 14, alignItems: 'center', justifyContent: 'center' },
   filterText: { fontSize: 11.5, fontWeight: '600' },
