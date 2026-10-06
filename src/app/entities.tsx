@@ -28,9 +28,9 @@ import { Redirect, router, useFocusEffect, useLocalSearchParams } from 'expo-rou
 
 import { EntityDefinition, entityCatalog, entityGroups } from '@/data/entity-catalog';
 import { fieldsForEntity } from '@/data/entity-fields';
-import { entryFieldGroups } from '@/data/entity-entry-layout';
 import { creationDateFields } from '@/data/planning';
 import { EntityFieldInput } from '@/components/entity-field-input';
+import { EntityEntryExperience } from '@/components/entity-entry-experience';
 import { SpecializedLog } from '@/components/specialized-log';
 import { VehicleOverview } from '@/components/vehicle-overview';
 import { specializedLogTypes, readLogItems } from '@/data/log-items';
@@ -92,7 +92,12 @@ export default function EntitiesScreen() {
 
   const [loaded, setLoaded] = useState(false);
   const visualCapture = selectedType?.name === 'Mood Log' || selectedType?.name === 'Workout';
-  const captureTitle = title.trim() || (selectedType?.name === 'Mood Log' && fieldValues.mood ? `${fieldValues.mood} · Mood log` : selectedType?.name === 'Workout' && readLogItems(fieldValues.logItems).length ? 'Workout · ' + [...new Set(readLogItems(fieldValues.logItems).map(item => item.muscle).filter(Boolean))].join(', ') : '');
+  const currentLogItems = readLogItems(fieldValues.logItems);
+  const captureTitle = title.trim()
+    || (selectedType?.name === 'Mood Log' && fieldValues.mood ? `${fieldValues.mood} · Mood log` : '')
+    || (selectedType?.name === 'Workout' && currentLogItems.length ? 'Workout · ' + [...new Set(currentLogItems.map(item => item.muscle).filter(Boolean))].join(', ') : '')
+    || (selectedType?.name === 'Meal' && currentLogItems.length ? `${fieldValues.mealType || 'Meal'} · ${currentLogItems.slice(0, 2).map(item => item.name).filter(Boolean).join(', ')}` : '')
+    || (selectedType?.name === 'Wardrobe Log' && currentLogItems.length ? `${fieldValues.occasion || 'Outfit'} · ${currentLogItems[0]?.name || 'Wardrobe log'}` : '');
   const refreshToken = useRef(0);
   const savePending = useRef(false);
 
@@ -224,9 +229,8 @@ export default function EntitiesScreen() {
     const groupColor = matrixGroupColor(selectedType.group, reviewAppearance);
     const accent = groupColor.accent;
     const accentSoft = groupColor.soft;
-    const fieldGroups = entryFieldGroups(selectedType.name, fieldsForEntity(selectedType.name));
-    const visibleFields = showMoreDetails ? [...fieldGroups.primary, ...fieldGroups.extra] : fieldGroups.primary;
-    const hiddenDetailCount = fieldGroups.extra.length + 3;
+    const entryFields = fieldsForEntity(selectedType.name);
+    const hiddenDetailCount = 3;
     return (
       <SafeAreaView style={[styles.safe, { backgroundColor: palette.bg }]} edges={['top']}>
         <ScrollView contentContainerStyle={styles.formWrap} keyboardShouldPersistTaps="handled">
@@ -241,143 +245,53 @@ export default function EntitiesScreen() {
               }} style={[styles.captureTab, { backgroundColor: selectedType.name === name ? palette.panel : 'transparent' }]}>
               <Text style={{ color: selectedType.name === name ? accent : palette.muted, fontSize: 14, fontWeight: selectedType.name === name ? '650' as '600' : '500' }}>{name === 'Task' ? '✓' : '↻'} {name}</Text>
             </Pressable>)}
-          </View> : isLog ? null : <View style={[styles.typeHero, { backgroundColor: accentSoft, borderColor: accent }]}>
-            <View style={[styles.heroIcon, { backgroundColor: palette.panel }]}><EntityIcon type={selectedType.name} color={accent} size={26} /></View>
+          </View> : null}
+
+          {isLog ? (
+            <SpecializedLog
+              type={selectedType.name}
+              values={fieldValues}
+              palette={palette}
+              onChange={(key, value) => setFieldValues(current => ({ ...current, [key]: value }))}
+            />
+          ) : (
+            <EntityEntryExperience
+              type={selectedType.name}
+              group={selectedType.group}
+              title={title}
+              onTitleChange={setTitle}
+              values={fieldValues}
+              onChange={(key, value) => setFieldValues(current => ({ ...current, [key]: value }))}
+              onValuesChange={setFieldValues}
+              relatedIds={relatedIds}
+              onRelatedIdsChange={setRelatedIds}
+              fields={entryFields}
+              records={saved}
+              editingId={editing?.id}
+              palette={palette}
+              accent={accent}
+              accentSoft={accentSoft}
+              wide={wideForm}
+            />
+          )}
+
+          <Pressable
+            accessibilityRole="button"
+            accessibilityState={{ expanded: showMoreDetails }}
+            onPress={() => setShowMoreDetails(value => !value)}
+            style={[styles.moreDetails, { backgroundColor: palette.card, borderColor: palette.line }]}
+          >
+            <View style={[styles.moreDetailsIcon, { backgroundColor: accentSoft }]}>
+              <SymbolView name={{ ios: 'slider.horizontal.3', android: 'tune', web: 'tune' }} size={17} tintColor={accent} />
+            </View>
             <View style={styles.flex}>
-              <Text style={[styles.heroTitle, { color: palette.text }]}>{selectedType.name}</Text>
-              <Text style={[styles.heroSub, { color: palette.muted }]}>{selectedType.group} · {editing ? 'Editing saved item' : 'New entry'}</Text>
+              <Text style={[styles.moreDetailsTitle, { color: palette.text }]}>{showMoreDetails ? 'Hide extra details' : 'More details'}</Text>
+              <Text numberOfLines={1} style={[styles.moreDetailsSub, { color: palette.muted }]}>
+                {showMoreDetails ? 'Keep the entry screen focused' : `${hiddenDetailCount} optional areas · notes, links and privacy`}
+              </Text>
             </View>
-            <View style={[styles.contextBadge, { backgroundColor: palette.panel }]}>
-              <View style={[styles.contextDot, { backgroundColor: accent }]} />
-              <Text style={[styles.contextText, { color: accent }]}>{selectedType.group}</Text>
-            </View>
-          </View>}
-
-          <Text style={[styles.label, { color: palette.muted }]}>Name</Text>
-          <TextInput
-            accessibilityLabel={selectedType.name + ' name'}
-            value={title}
-            onChangeText={setTitle}
-            placeholder={`Name this ${selectedType.name.toLowerCase()}`}
-            placeholderTextColor={palette.muted}
-            autoCapitalize="sentences"
-            returnKeyType="done"
-            style={[styles.heroField, { color: palette.text, backgroundColor: title ? accentSoft : palette.raised, borderColor: title ? accent : palette.line }]}
-          />
-
-          {visualCapture ? <SpecializedLog type={selectedType.name} values={fieldValues} palette={palette} onChange={(key, value) => setFieldValues(current => ({ ...current, [key]: value }))} /> : null}
-          {visualCapture ? null : isLog ? <SpecializedLog type={selectedType.name} values={fieldValues} palette={palette} onChange={(key, value) => setFieldValues(current => ({ ...current, [key]: value }))} /> : <>
-            <View style={styles.formSectionHead}>
-              <View style={styles.flex}>
-                <Text style={[styles.formSectionTitle, { color: palette.text }]}>Details</Text>
-                <Text style={[styles.formSectionSubtitle, { color: palette.muted }]}>Add only what is useful. You can edit this later.</Text>
-              </View>
-            </View>
-            <View style={styles.dynamicGrid}>
-            {visibleFields.map((item) => (
-              <View
-                key={item.key}
-                style={[
-                  styles.dynamicItem,
-                  wideForm && !item.weeklySchedule && !['people', 'peopleIds', 'description', 'notes'].includes(item.key) && styles.dynamicItemWide,
-                ]}
-              >
-                <Text style={[styles.label, { color: palette.muted }]}>{((selectedType.name === 'Task' && item.key === 'project') || (selectedType.name === 'Habit' && item.key === 'goal')) ? 'Part of · optional' : item.label}</Text>
-                {selectedType.name === 'Expense' && item.key === 'account' ? <View style={{ marginBottom: 16 }}>
-                  <Pressable accessibilityRole="button" accessibilityLabel="Select expense account" accessibilityState={{ expanded: accountPickerOpen }} onPress={() => setAccountPickerOpen(true)} style={{ minHeight: 52, padding: 14, borderWidth: 1, borderColor: palette.line, borderRadius: 14, backgroundColor: palette.raised, flexDirection: 'row', alignItems: 'center', gap: 12 }}>
-                    <SymbolView name={{ ios: 'creditcard', android: 'credit_card', web: 'credit_card' }} size={22} tintColor={palette.muted} />
-                    <Text style={{ flex: 1, color: fieldValues.account ? palette.text : palette.muted }}>{fieldValues.account || 'Select account or payment method'}</Text>
-                    <SymbolView name={{ ios: 'chevron.down', android: 'expand_more', web: 'expand_more' }} size={18} tintColor={palette.muted} />
-                  </Pressable>
-                  <Modal visible={accountPickerOpen} transparent animationType="slide" onRequestClose={() => setAccountPickerOpen(false)}>
-                    <View style={{ flex: 1, justifyContent: 'flex-end', backgroundColor: '#00000080' }}>
-                      <Pressable accessibilityRole="button" accessibilityLabel="Dismiss account picker" onPress={() => setAccountPickerOpen(false)} style={StyleSheet.absoluteFill} />
-                      <SafeAreaView edges={['bottom']} accessibilityViewIsModal style={{ maxHeight: '80%', backgroundColor: palette.panel, borderTopLeftRadius: 24, borderTopRightRadius: 24 }}>
-                        <View style={{ padding: 20, flexShrink: 1, gap: 12 }}>
-                          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
-                            <Text accessibilityRole="header" style={{ flex: 1, fontSize: 20, fontWeight: '700', color: palette.text }}>Account / payment method</Text>
-                            <Pressable accessibilityRole="button" accessibilityLabel="Close account picker" onPress={() => setAccountPickerOpen(false)} style={{ minHeight: 44, minWidth: 44, justifyContent: 'center', alignItems: 'center' }}><SymbolView name={{ ios: 'xmark', android: 'close', web: 'close' }} size={20} tintColor={palette.text} /></Pressable>
-                          </View>
-                          <ScrollView keyboardShouldPersistTaps="handled">
-                            {expenseAccounts.map(account => <Pressable key={account} accessibilityRole="radio" accessibilityState={{ checked: fieldValues.account === account }} onPress={() => { setFieldValues(current => ({ ...current, account })); setAccountPickerOpen(false); }} style={{ minHeight: 52, paddingVertical: 14, flexDirection: 'row', alignItems: 'center', gap: 12, borderBottomWidth: 1, borderColor: palette.line }}>
-                              <Text style={{ flex: 1, color: palette.text, fontSize: 16 }}>{account}</Text>
-                              {fieldValues.account === account ? <SymbolView name={{ ios: 'checkmark', android: 'check', web: 'check' }} size={20} tintColor={palette.accent} /> : null}
-                            </Pressable>)}
-                          </ScrollView>
-                        </View>
-                      </SafeAreaView>
-                    </View>
-                  </Modal>
-                </View> : selectedType.name === 'Event' && item.key === 'location' ? <TextInput accessibilityLabel="Event location" value={fieldValues.location ?? ''} onChangeText={location => setFieldValues(current => ({ ...current, location }))} placeholder="Add a location" placeholderTextColor={palette.muted} style={[styles.field, { color: palette.text, backgroundColor: palette.raised, borderColor: fieldValues.amount ? accent : palette.line, marginBottom: 16 }]} /> : selectedType.name === 'Event' && item.key === 'people' ? <View style={{ marginBottom: 16 }}>
-                  <Pressable accessibilityRole="button" accessibilityLabel="Select event people" accessibilityState={{ expanded: peopleSheetOpen }} onPress={() => { setPeopleQuery(''); setPeopleSheetOpen(true); }} style={{ minHeight: 52, padding: 14, borderWidth: 1, borderColor: palette.line, borderRadius: 14, backgroundColor: palette.raised, flexDirection: 'row', alignItems: 'center', gap: 12 }}>
-                    <SymbolView name={{ ios: 'person.2', android: 'group', web: 'group' }} size={22} tintColor={palette.muted} />
-                    <Text numberOfLines={2} style={{ flex: 1, color: fieldValues.people ? palette.text : palette.muted }}>{fieldValues.people || 'Select contacts'}</Text>
-                    <SymbolView name={{ ios: 'chevron.down', android: 'expand_more', web: 'expand_more' }} size={18} tintColor={palette.muted} />
-                  </Pressable>
-                  <Modal visible={peopleSheetOpen} transparent animationType="slide" onRequestClose={() => setPeopleSheetOpen(false)}>
-                    <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={{ flex: 1, justifyContent: 'flex-end', backgroundColor: '#00000080' }}>
-                      <Pressable accessibilityRole="button" accessibilityLabel="Close contacts" onPress={() => setPeopleSheetOpen(false)} style={StyleSheet.absoluteFill} />
-                      <SafeAreaView edges={['bottom']} accessibilityViewIsModal style={{ height: '80%', backgroundColor: palette.panel, borderTopLeftRadius: 24, borderTopRightRadius: 24, overflow: 'hidden' }}>
-                        <View style={{ flex: 1, padding: 20, gap: 12 }}>
-                          <View style={{ width: 36, height: 4, borderRadius: 2, backgroundColor: palette.line, alignSelf: 'center' }} />
-                          <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
-                            <Text accessibilityRole="header" style={{ color: palette.text, fontSize: 22, fontWeight: '700' }}>All contacts</Text>
-                            <Pressable accessibilityRole="button" accessibilityLabel="Done selecting contacts" onPress={() => setPeopleSheetOpen(false)} style={{ minHeight: 44, minWidth: 64, justifyContent: 'center', alignItems: 'center' }}><Text style={{ color: palette.accent, fontWeight: '700', fontSize: 16 }}>Done</Text></Pressable>
-                          </View>
-                  <TextInput accessibilityLabel="Search event contacts" value={peopleQuery} onChangeText={setPeopleQuery} placeholder="Search saved contacts" placeholderTextColor={palette.muted} style={[styles.field, { color: palette.text, backgroundColor: palette.panel, borderColor: palette.line }]} />
-                  <Text style={{ color: palette.muted }}>{eventPeopleIds.length} selected · No invitations sent</Text>
-                  {!fieldValues.peopleIds && fieldValues.people ? <Text style={{ color: palette.muted }}>Previously saved: {fieldValues.people}</Text> : null}
-                  <ScrollView nestedScrollEnabled keyboardShouldPersistTaps="handled" style={{ flex: 1 }}>
-                    {eventContacts.filter(person => person.title.toLowerCase().includes(peopleQuery.toLowerCase())).map(person => {
-                      const checked = eventPeopleIds.includes(person.id);
-                      return <Pressable key={person.id} accessibilityRole="checkbox" accessibilityLabel={person.title} accessibilityState={{ checked }} onPress={() => {
-                        const ids = checked ? eventPeopleIds.filter(id => id !== person.id) : [...eventPeopleIds, person.id];
-                        setFieldValues(current => ({ ...current, peopleIds: JSON.stringify(ids), people: ids.map(id => eventContacts.find(contact => contact.id === id)?.title ?? 'Unavailable contact').join(', ') }));
-                      }} style={{ minHeight: 52, flexDirection: 'row', alignItems: 'center', gap: 12, padding: 12, borderBottomWidth: 1, borderColor: palette.line }}>
-                        <SymbolView name={{ ios: 'person.crop.circle', android: 'account_circle', web: 'account_circle' }} size={24} tintColor={palette.muted} />
-                        <Text style={{ flex: 1, color: palette.text }}>{person.title}</Text>
-                        <SymbolView name={{ ios: checked ? 'checkmark.circle.fill' : 'circle', android: checked ? 'check_circle' : 'radio_button_unchecked', web: checked ? 'check_circle' : 'radio_button_unchecked' }} size={22} tintColor={checked ? palette.accent : palette.muted} />
-                      </Pressable>;
-                    })}
-                  </ScrollView>
-                  {!eventContacts.length ? <Text style={{ color: palette.muted }}>No saved contacts yet. Add a Person in MATRIX to select them here.</Text> : !eventContacts.some(person => person.title.toLowerCase().includes(peopleQuery.toLowerCase())) ? <Text style={{ color: palette.muted }}>No contacts match your search.</Text> : null}
-                
-                        </View>
-                      </SafeAreaView>
-                    </KeyboardAvoidingView>
-                  </Modal>
-                </View> : selectedType.name === 'Habit' && item.key === 'frequency' ? <HabitFrequency value={fieldValues.frequency ?? ''} onChange={frequency => setFieldValues(current => ({ ...current, frequency }))} palette={palette} /> : ((selectedType.name === 'Task' && item.key === 'project') || (selectedType.name === 'Habit' && item.key === 'goal')) ? <TaskProjectPicker records={saved} taskId={editing?.id} value={fieldValues[item.key + 'Id'] ?? ''} legacyName={fieldValues[item.key] ?? ''} palette={palette} onChange={entity => {
-                  const next = selectTaskProject(fieldValues, relatedIds, entity, item.key as 'project' | 'goal');
-                  setFieldValues(next.values);
-                  setRelatedIds(next.relatedIds);
-                }} /> : selectedType.name === 'Task' && item.key === 'priority' ? <View style={{ marginBottom: 16 }}><PresetChoices label="Priority" options={['Low', 'Medium', 'High']} value={fieldValues.priority ?? ''} onChange={value => setFieldValues(current => ({ ...current, priority: value }))} palette={palette} /></View> : <EntityFieldInput
-                  hideDateShortcuts
-                  field={{ ...item, options: [...new Set([...tapPresets(item), ...saved.filter(record => record.metadata.entityType === selectedType.name).map(record => record.metadata[item.key]).filter((value): value is string => typeof value === 'string' && value.length > 0)])] }}
-                  value={fieldValues[item.key] ?? ''}
-                  onChange={(value) => setFieldValues((current) => ({ ...current, [item.key]: value }))}
-                  palette={palette}
-                />}
-              </View>
-            ))}
-            </View>
-            <Pressable
-              accessibilityRole="button"
-              accessibilityState={{ expanded: showMoreDetails }}
-              onPress={() => setShowMoreDetails(value => !value)}
-              style={[styles.moreDetails, { backgroundColor: palette.card, borderColor: palette.line }]}
-            >
-              <View style={[styles.moreDetailsIcon, { backgroundColor: accentSoft }]}>
-                <SymbolView name={{ ios: 'slider.horizontal.3', android: 'tune', web: 'tune' }} size={17} tintColor={accent} />
-              </View>
-              <View style={styles.flex}>
-                <Text style={[styles.moreDetailsTitle, { color: palette.text }]}>{showMoreDetails ? 'Hide extra details' : 'More details'}</Text>
-                <Text numberOfLines={1} style={[styles.moreDetailsSub, { color: palette.muted }]}>
-                  {showMoreDetails ? 'Keep the entry screen focused' : `${hiddenDetailCount} optional areas · notes, links, privacy and more`}
-                </Text>
-              </View>
-              <SymbolView name={{ ios: showMoreDetails ? 'chevron.up' : 'chevron.down', android: showMoreDetails ? 'expand_less' : 'expand_more', web: showMoreDetails ? 'expand_less' : 'expand_more' }} size={17} tintColor={palette.muted} />
-            </Pressable>
-          </>}
+            <SymbolView name={{ ios: showMoreDetails ? 'chevron.up' : 'chevron.down', android: showMoreDetails ? 'expand_less' : 'expand_more', web: showMoreDetails ? 'expand_less' : 'expand_more' }} size={17} tintColor={palette.muted} />
+          </Pressable>
 
           {showMoreDetails ? <>
           <Text style={[styles.label, { color: palette.muted, marginTop: 18 }]}>Notes · optional</Text>
