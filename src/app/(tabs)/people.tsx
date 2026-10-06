@@ -103,9 +103,11 @@ export default function PeopleScreen() {
         <View style={[s.friendList, { backgroundColor: p.card, borderColor: p.line }]}>
           {filtered.length ? filtered.slice(0, 12).map((item, index) => {
             const initials = item.title.split(/\s+/).slice(0, 2).map(part => part[0] || '').join('').toUpperCase();
-            const active = index % 3 !== 1;
-            const streak = [12, 5, 8, 21, 4, 17][index % 6];
             const relationship = String(item.metadata.relationship ?? (item.kind === 'family-member' ? 'Family' : 'Connection'));
+            const lastContact = String(item.metadata.lastContact ?? '');
+            const activityLabel = lastContact
+              ? `Last contact · ${lastContact}`
+              : `Updated ${new Date(item.updatedAt).toLocaleDateString()}`;
             return (
               <Pressable
                 key={item.id}
@@ -114,20 +116,19 @@ export default function PeopleScreen() {
               >
                 <View style={[s.avatar, { backgroundColor: ['#243553', '#47304E', '#1F463C', '#3A3422'][index % 4] }]}>
                   <Text style={s.avatarText}>{initials || '?'}</Text>
-                  <View style={[s.presence, { backgroundColor: active ? '#32D583' : p.muted, borderColor: p.card }]} />
                 </View>
                 <View style={s.flex}>
-                  <Text numberOfLines={1} style={[s.friendName, { color: p.text }]}>{item.title}</Text>
-                  <Text numberOfLines={1} style={[s.friendStatus, { color: p.muted }]}>
-                    {active ? '● Active now' : relationship}
-                  </Text>
+                  <View style={s.nameRow}>
+                    <Text numberOfLines={1} style={[s.friendName, { color: p.text }]}>{item.title}</Text>
+                    <View style={[s.relationshipPill, { backgroundColor: p.raised }]}>
+                      <Text numberOfLines={1} style={[s.relationshipText, { color: p.muted }]}>{relationship}</Text>
+                    </View>
+                  </View>
+                  <Text numberOfLines={1} style={[s.friendStatus, { color: p.muted }]}>{activityLabel}</Text>
                 </View>
-                <View style={s.streakWrap}>
-                  <Text numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.78} style={[s.streak, { color: '#FFB43C' }]}>🔥 {streak} day streak</Text>
-                  <Pressable onPress={() => router.push('/messages')} style={[s.chatButton, { backgroundColor: p.raised }]}>
-                    <SymbolView name={{ ios: 'message', android: 'chat_bubble_outline', web: 'chat_bubble_outline' }} size={14} tintColor={p.text} />
-                  </Pressable>
-                </View>
+                <Pressable onPress={() => router.push('/messages')} style={[s.chatButton, { backgroundColor: p.raised }]}>
+                  <SymbolView name={{ ios: 'message', android: 'chat_bubble_outline', web: 'chat_bubble_outline' }} size={14} tintColor={p.text} />
+                </Pressable>
               </Pressable>
             );
           }) : (
@@ -143,11 +144,11 @@ export default function PeopleScreen() {
             <SymbolView name={{ ios: 'person.crop.circle.badge.plus', android: 'person_add', web: 'person_add' }} size={24} tintColor="#A988FF" />
           </View>
           <View style={s.flex}>
-            <Text style={[s.importTitle, { color: p.text }]}>Find Friends on LifeOS</Text>
-            <Text style={[s.importCopy, { color: p.muted }]}>Sync contacts to see who’s already here.</Text>
+            <Text style={[s.importTitle, { color: p.text }]}>Build your Circle</Text>
+            <Text style={[s.importCopy, { color: p.muted }]}>Save people, relationships and groups you want to keep organised.</Text>
           </View>
           <Pressable onPress={() => router.navigate({ pathname: '/entities', params: { type: 'Person', request: String(Date.now()) } })} style={[s.importButton, { backgroundColor: p.accent }]}>
-            <Text numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.75} style={s.importButtonText}>Import Contacts</Text>
+            <Text numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.75} style={s.importButtonText}>Add person</Text>
           </Pressable>
         </View>
       </ScrollView>
@@ -178,11 +179,11 @@ const s = StyleSheet.create({
   friendRow: { minHeight: 68, flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 8 },
   avatar: { width: 42, height: 42, borderRadius: 21, alignItems: 'center', justifyContent: 'center' },
   avatarText: { color: '#FFFFFF', fontSize: 12.5, fontWeight: '700' },
-  presence: { position: 'absolute', width: 10, height: 10, borderRadius: 5, borderWidth: 2, right: -1, bottom: 1 },
-  friendName: { fontSize: 12, fontWeight: '650' as '600' },
-  friendStatus: { fontSize: 9.5, marginTop: 3 },
-  streakWrap: { width: 88, alignItems: 'flex-end', gap: 5, flexShrink: 0 },
-  streak: { fontSize: 8.5, fontWeight: '600' },
+  friendName: { flexShrink: 1, fontSize: 12, fontWeight: '650' as '600' },
+  nameRow: { flexDirection: 'row', alignItems: 'center', gap: 7 },
+  relationshipPill: { maxWidth: 92, minHeight: 21, borderRadius: 11, paddingHorizontal: 7, alignItems: 'center', justifyContent: 'center' },
+  relationshipText: { fontSize: 8.2, fontWeight: '600' },
+  friendStatus: { fontSize: 9.5, marginTop: 4 },
   chatButton: { width: 29, height: 29, borderRadius: 15, alignItems: 'center', justifyContent: 'center' },
   empty: { paddingVertical: 22, alignItems: 'center' },
   emptyTitle: { fontSize: 13, fontWeight: '600' },
