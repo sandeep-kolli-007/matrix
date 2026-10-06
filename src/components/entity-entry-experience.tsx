@@ -325,6 +325,140 @@ function SleepEntry(props: Props) {
   );
 }
 
+function HealthEntry(props: Props) {
+  const { type, fields, values, onChange, palette: p, accent } = props;
+
+  if (type === 'Symptom') {
+    const severity = values.severity || '';
+    const levels = [
+      { label: 'Mild', color: p.success, bars: 1 },
+      { label: 'Moderate', color: p.warning, bars: 2 },
+      { label: 'Severe', color: p.danger, bars: 3 },
+    ];
+    return (
+      <>
+        <View style={[s.healthHero, { backgroundColor: p.card, borderColor: p.line }]}>
+          <View style={[s.healthIcon, { backgroundColor: props.accentSoft }]}><EntityIcon type={type} color={accent} size={29} /></View>
+          <View style={s.flex}>
+            <Text style={[s.healthHeroTitle, { color: p.text }]}>How intense is it?</Text>
+            <Text style={[s.healthHeroCopy, { color: p.muted }]}>Record the signal first, then add where and when it started.</Text>
+          </View>
+        </View>
+        <View style={s.severityRow}>
+          {levels.map(level => {
+            const active = severity === level.label;
+            return (
+              <Pressable key={level.label} onPress={() => onChange('severity', level.label)} style={[s.severityCard, { backgroundColor: active ? `${level.color}18` : p.card, borderColor: active ? level.color : p.line }]}>
+                <View style={s.severityBars}>{[1,2,3].map(bar => <View key={bar} style={[s.severityBar, { height: 8 + bar * 5, backgroundColor: bar <= level.bars ? level.color : p.line }]} />)}</View>
+                <Text style={[s.severityText, { color: active ? level.color : p.text }]}>{level.label}</Text>
+              </Pressable>
+            );
+          })}
+        </View>
+        <View style={s.tileGrid}>
+          {fields.filter(field => field.key !== 'severity').map((field,index) => <FieldTile key={field.key} field={field} value={values[field.key] ?? ''} onChange={value => onChange(field.key,value)} palette={p} accent={accent} wide={index > 0} />)}
+        </View>
+      </>
+    );
+  }
+
+  if (type === 'Medication') {
+    return (
+      <>
+        <View style={[s.medicationHero, { backgroundColor: p.card, borderColor: p.line }]}>
+          <View style={[s.pillVisual, { backgroundColor: props.accentSoft }]}>
+            <View style={[s.pillHalf, { backgroundColor: accent }]} />
+            <View style={[s.pillHalf, { backgroundColor: p.panel }]} />
+          </View>
+          <View style={s.flex}>
+            <Text style={[s.healthHeroTitle, { color: p.text }]}>Medication schedule</Text>
+            <Text style={[s.healthHeroCopy, { color: p.muted }]}>Dose and timing stay prominent; prescriber is secondary.</Text>
+          </View>
+        </View>
+        <View style={s.tileGrid}>
+          {fields.map((field,index) => <FieldTile key={field.key} field={field} value={values[field.key] ?? ''} onChange={value => onChange(field.key,value)} palette={p} accent={accent} wide={index === fields.length - 1} />)}
+        </View>
+      </>
+    );
+  }
+
+  if (type === 'Appointment') {
+    const provider = values.provider || 'Provider';
+    return (
+      <>
+        <View style={[s.appointmentCard, { backgroundColor: p.card, borderColor: p.line }]}>
+          <View style={[s.providerAvatar, { backgroundColor: props.accentSoft }]}>
+            <SymbolView name={{ ios: 'cross.case.fill', android: 'medical_services', web: 'medical_services' }} size={27} tintColor={accent} />
+          </View>
+          <View style={s.flex}>
+            <Text style={[s.appointmentProvider, { color: p.text }]}>{provider}</Text>
+            <Text style={[s.appointmentMeta, { color: p.muted }]}>Appointment card</Text>
+          </View>
+          <View style={[s.appointmentStatus, { backgroundColor: p.selected }]}><Text style={[s.appointmentStatusText, { color: accent }]}>Upcoming</Text></View>
+        </View>
+        <View style={s.tileGrid}>
+          {fields.map((field,index) => <FieldTile key={field.key} field={field} value={values[field.key] ?? ''} onChange={value => onChange(field.key,value)} palette={p} accent={accent} wide={field.key === 'location' || index > 2} />)}
+        </View>
+      </>
+    );
+  }
+
+  if (type === 'Cycle Log') {
+    const cycleDay = Number(values.cycleDay) || 1;
+    return (
+      <>
+        <View style={[s.cycleHero, { backgroundColor: p.card, borderColor: p.line }]}>
+          <View style={[s.cycleRing, { borderColor: accent }]}>
+            <Text style={[s.cycleDay, { color: p.text }]}>{cycleDay}</Text>
+            <Text style={[s.cycleLabel, { color: p.muted }]}>DAY</Text>
+          </View>
+          <View style={s.flex}>
+            <Text style={[s.healthHeroTitle, { color: p.text }]}>Cycle check-in</Text>
+            <Text style={[s.healthHeroCopy, { color: p.muted }]}>Day, flow and symptoms stay together in a private entry.</Text>
+          </View>
+        </View>
+        <View style={s.tileGrid}>
+          {fields.map((field,index) => <FieldTile key={field.key} field={field} value={values[field.key] ?? ''} onChange={value => onChange(field.key,value)} palette={p} accent={accent} wide={field.key === 'symptoms' || index > 2} />)}
+        </View>
+      </>
+    );
+  }
+
+  if (type === 'Recipe') {
+    return (
+      <>
+        <View style={[s.recipeHero, { backgroundColor: p.card, borderColor: p.line }]}>
+          <View style={[s.recipePlate, { backgroundColor: props.accentSoft }]}>
+            <SymbolView name={{ ios: 'frying.pan.fill', android: 'skillet', web: 'skillet' }} size={30} tintColor={accent} />
+          </View>
+          <View style={s.flex}>
+            <Text style={[s.healthHeroTitle, { color: p.text }]}>Recipe card</Text>
+            <Text style={[s.healthHeroCopy, { color: p.muted }]}>Ingredients first, then prep time and servings.</Text>
+          </View>
+        </View>
+        <View style={s.tileGrid}>
+          {fields.map((field,index) => <FieldTile key={field.key} field={field} value={values[field.key] ?? ''} onChange={value => onChange(field.key,value)} palette={p} accent={accent} wide={field.key === 'ingredients' || index > 1} />)}
+        </View>
+      </>
+    );
+  }
+
+  return (
+    <>
+      <View style={[s.healthHero, { backgroundColor: p.card, borderColor: p.line }]}>
+        <View style={[s.healthIcon, { backgroundColor: props.accentSoft }]}><EntityIcon type={type} color={accent} size={29} /></View>
+        <View style={s.flex}>
+          <Text style={[s.healthHeroTitle, { color: p.text }]}>{type}</Text>
+          <Text style={[s.healthHeroCopy, { color: p.muted }]}>Key health details are grouped into quick controls rather than a long form.</Text>
+        </View>
+      </View>
+      <View style={s.tileGrid}>
+        {fields.map((field,index) => <FieldTile key={field.key} field={field} value={values[field.key] ?? ''} onChange={value => onChange(field.key,value)} palette={p} accent={accent} wide={index > 1} />)}
+      </View>
+    </>
+  );
+}
+
 function AssetEntry(props: Props) {
   const { type, fields, values, onChange, palette: p, accent } = props;
   const primary = type === 'Vehicle' ? ['makeModel', 'registration', 'odometer', 'mileage'] : type === 'Document' ? ['documentType', 'expires'] : fields.slice(0, 4).map(field => field.key);
@@ -432,6 +566,7 @@ export function EntityEntryExperience(props: Props) {
   else if (type === 'Sleep Log') body = <SleepEntry {...props} />;
   else if (finance.has(type)) body = <FinanceEntry {...props} />;
   else if (schedule.has(type)) body = <ScheduleEntry {...props} />;
+  else if (health.has(type)) body = <HealthEntry {...props} />;
   else if (people.has(type)) body = <PeopleEntry {...props} />;
   else if (assets.has(type)) body = <AssetEntry {...props} />;
   else if (learning.has(type)) body = <LearningEntry {...props} />;
@@ -522,6 +657,31 @@ const s = StyleSheet.create({
   priorityCard: { flex: 1, minHeight: 54, borderRadius: 16, borderWidth: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 7 },
   priorityDot: { width: 7, height: 7, borderRadius: 4 },
   priorityText: { fontSize: 10.5, fontWeight: '600' },
+
+  healthHero: { minHeight: 92, borderRadius: 22, borderWidth: 1, padding: 14, flexDirection: 'row', alignItems: 'center', gap: 11 },
+  healthIcon: { width: 55, height: 55, borderRadius: 18, alignItems: 'center', justifyContent: 'center' },
+  healthHeroTitle: { fontSize: 15, fontWeight: '700' },
+  healthHeroCopy: { fontSize: 10, lineHeight: 14, marginTop: 4 },
+  severityRow: { flexDirection: 'row', gap: 8 },
+  severityCard: { flex: 1, minHeight: 76, borderRadius: 17, borderWidth: 1, alignItems: 'center', justifyContent: 'center', gap: 7 },
+  severityBars: { height: 28, flexDirection: 'row', alignItems: 'flex-end', gap: 3 },
+  severityBar: { width: 5, borderRadius: 3 },
+  severityText: { fontSize: 10, fontWeight: '600' },
+  medicationHero: { minHeight: 96, borderRadius: 22, borderWidth: 1, padding: 14, flexDirection: 'row', alignItems: 'center', gap: 12 },
+  pillVisual: { width: 64, height: 32, borderRadius: 16, overflow: 'hidden', flexDirection: 'row', transform: [{ rotate: '-18deg' }] },
+  pillHalf: { flex: 1 },
+  appointmentCard: { minHeight: 84, borderRadius: 20, borderWidth: 1, padding: 13, flexDirection: 'row', alignItems: 'center', gap: 10 },
+  providerAvatar: { width: 48, height: 48, borderRadius: 15, alignItems: 'center', justifyContent: 'center' },
+  appointmentProvider: { fontSize: 14, fontWeight: '650' as '600' },
+  appointmentMeta: { fontSize: 9.5, marginTop: 3 },
+  appointmentStatus: { minHeight: 28, borderRadius: 14, paddingHorizontal: 9, alignItems: 'center', justifyContent: 'center' },
+  appointmentStatusText: { fontSize: 8.5, fontWeight: '700' },
+  cycleHero: { minHeight: 104, borderRadius: 22, borderWidth: 1, padding: 14, flexDirection: 'row', alignItems: 'center', gap: 12 },
+  cycleRing: { width: 68, height: 68, borderRadius: 34, borderWidth: 4, alignItems: 'center', justifyContent: 'center' },
+  cycleDay: { fontSize: 21, fontWeight: '700' },
+  cycleLabel: { fontSize: 8, fontWeight: '700', letterSpacing: 0.8 },
+  recipeHero: { minHeight: 92, borderRadius: 22, borderWidth: 1, padding: 14, flexDirection: 'row', alignItems: 'center', gap: 11 },
+  recipePlate: { width: 56, height: 56, borderRadius: 28, alignItems: 'center', justifyContent: 'center' },
 
   assetDashboard: { borderRadius: 22, borderWidth: 1, padding: 14, flexDirection: 'row', alignItems: 'center', gap: 11 },
   assetVisual: { width: 62, height: 62, borderRadius: 18, alignItems: 'center', justifyContent: 'center' },
