@@ -264,7 +264,8 @@ export function buildPreviewEntities(): LifeEntity[] {
       const fieldMetadata = Object.fromEntries(
         fieldsForEntity(definition.name).map(field => [field.key, sampleValue(definition.name, field.key, index)])
       );
-      const createdDaysAgo = (typeIndex * 3 + index * 2) % 14;
+      const activityOffsets = [0, 1, 0, 2, 1, 3, 2, 4, 5, 3, 7, 6, 10, 13];
+      const createdDaysAgo = activityOffsets[(typeIndex * 5 + index * 3) % activityOffsets.length];
       const createdAt = isoDaysAgo(createdDaysAgo, 8 + ((typeIndex + index) % 10));
       const updatedAt = isoDaysAgo(Math.min(createdDaysAgo, index), 11 + ((typeIndex + index) % 8));
 
