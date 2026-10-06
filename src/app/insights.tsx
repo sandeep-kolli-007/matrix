@@ -1,31 +1,25 @@
 import { useCallback, useMemo, useState } from 'react';
-import { Pressable, RefreshControl, ScrollView, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
+import { Pressable, RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { router, useFocusEffect } from 'expo-router';
 import { SymbolView } from 'expo-symbols';
 
-import {
-  DistributionBars,
-  LifeGraph,
-  LifeOrb,
-  MotionReveal,
-  Sparkline,
-  SpatialStage,
-  visualMetrics,
-} from '@/components/matrix-visuals';
-import { PremiumSurface } from '@/components/premium-surface';
+import { EntityGalaxy, LifeConstellation, LifeStream } from '@/components/home-visuals';
+import { MatrixLottie } from '@/components/matrix-lottie';
+import { entityDashboard, visualMetrics } from '@/components/matrix-visuals';
 import { LifeEntity, listEntities } from '@/data/lifeos-store';
-import { matrixTheme } from '@/data/matrix-theme';
+import { isPreviewReviewMode } from '@/data/matrix-source';
+import { matrixGroupColor, matrixTheme } from '@/data/matrix-theme';
 import { useLifeOS } from '@/providers/lifeos-provider';
 
 export default function InsightsScreen() {
   const { appearance } = useLifeOS();
-  const { width } = useWindowDimensions();
-  const compact = width < 600;
-  const p = matrixTheme(appearance);
+  const reviewAppearance = isPreviewReviewMode ? 'dark' : appearance;
+  const p = matrixTheme(reviewAppearance);
+
   const [items, setItems] = useState<LifeEntity[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(false);
-  const [tab, setTab] = useState('Overview');
+  const [mode, setMode] = useState<'Overview' | 'Saved'>('Overview');
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -42,13 +36,36 @@ export default function InsightsScreen() {
 
   useFocusEffect(useCallback(() => { void load(); }, [load]));
 
+  const metrics = useMemo(() => visualMetrics(items), [items]);
+  const dashboard = useMemo(() => entityDashboard(items, 14), [items]);
   const tasks = items.filter(item => item.kind === 'task');
   const done = tasks.filter(item => item.metadata.completed === true).length;
   const privateCount = items.filter(item => item.deviceOnly).length;
-  const insights = items.filter(item => item.kind === 'insight');
-  const metrics = useMemo(() => visualMetrics(items), [items]);
   const privacyRate = items.length ? Math.round(privateCount / items.length * 100) : 0;
-  const activeThisWeek = metrics.daily.reduce((sum, value) => sum + value, 0);
+  const taskRate = tasks.length ? Math.round(done / tasks.length * 100) : 0;
+  const savedInsights = items.filter(item => item.kind === 'insight');
+
+  const areas = useMemo(() => dashboard.groupTrends.slice(0, 6).map(group => {
+    const tone = matrixGroupColor(group.label, reviewAppearance);
+    return {
+      label: group.label,
+      total: group.total,
+      color: tone.accent,
+      soft: tone.soft,
+      values: group.values,
+    };
+  }), [dashboard.groupTrends, reviewAppearance]);
+
+  const galaxy = useMemo(() => dashboard.entityTrends.map(entity => {
+    const tone = matrixGroupColor(entity.group, reviewAppearance);
+    return {
+      name: entity.label,
+      group: entity.group,
+      count: entity.total,
+      color: tone.accent,
+      soft: tone.soft,
+    };
+  }), [dashboard.entityTrends, reviewAppearance]);
 
   return (
     <ScrollView
@@ -59,220 +76,219 @@ export default function InsightsScreen() {
     >
       <View style={s.header}>
         <View style={s.flex}>
+          <Text style={[s.eyebrow, { color: p.muted }]}>MATRIX</Text>
           <Text accessibilityRole="header" style={[s.title, { color: p.text }]}>Insights</Text>
-          <Text style={[s.subtitle, { color: p.muted }]}>Patterns from your saved MATRIX data.</Text>
+          <Text style={[s.subtitle, { color: p.muted }]}>Patterns, motion and balance from your own data.</Text>
         </View>
-        <Pressable accessibilityRole="button" accessibilityLabel="Settings" onPress={() => router.push('/settings')} style={[s.iconButton, { backgroundColor: p.panel, borderColor: p.line }]}>
-          <SymbolView name={{ ios: 'slider.horizontal.3', android: 'tune', web: 'tune' }} size={19} tintColor={p.text} />
+        <Pressable onPress={() => router.push('/settings')} style={[s.iconButton, { backgroundColor: p.raised }]}>
+          <SymbolView name={{ ios: 'slider.horizontal.3', android: 'tune', web: 'tune' }} size={18} tintColor={p.text} />
         </Pressable>
       </View>
 
-      <View style={[s.tabs, { backgroundColor: p.raised }]}>
-        {['Overview', 'Saved insights'].map(value => {
-          const selected = value === tab;
+      <View style={[s.modeSwitch, { borderColor: p.line }]}>
+        {(['Overview', 'Saved'] as const).map(value => {
+          const active = value === mode;
           return (
-            <Pressable
-              key={value}
-              accessibilityRole="button"
-              accessibilityState={{ selected }}
-              onPress={() => setTab(value)}
-              style={[s.tab, selected && { backgroundColor: p.panel }]}
-            >
-              <Text style={[s.tabText, { color: selected ? p.text : p.muted }]}>{value}</Text>
+            <Pressable key={value} onPress={() => setMode(value)} style={[s.mode, active && { backgroundColor: p.selected }]}>
+              <Text style={[s.modeText, { color: active ? p.accent : p.muted }]}>{value}</Text>
             </Pressable>
           );
         })}
       </View>
 
       {error ? (
-        <Pressable onPress={() => void load()} style={[s.state, { backgroundColor: p.panel, borderColor: p.line }]}>
-          <Text style={[s.stateTitle, { color: p.text }]}>Couldn’t load insights</Text>
-          <Text style={[s.stateText, { color: p.muted }]}>Tap to try again.</Text>
+        <Pressable onPress={() => void load()} style={[s.error, { borderColor: p.danger }]}>
+          <Text style={[s.errorTitle, { color: p.text }]}>Couldn’t load insights</Text>
+          <Text style={[s.errorText, { color: p.muted }]}>Tap to try again.</Text>
         </Pressable>
-      ) : tab === 'Overview' ? (
+      ) : mode === 'Overview' ? (
         <>
-          <MotionReveal>
-            <SpatialStage intensity={0.8}>
-              <PremiumSurface style={[s.hero, compact && s.heroCompact, { backgroundColor: p.panel, borderColor: p.line }]}>
-                <View style={s.heroCopy}>
-                  <Text style={[s.kicker, { color: p.accent }]}>MATRIX SIGNAL</Text>
-                  <Text style={[s.heroTitle, { color: p.text }]}>Life Pulse</Text>
-                  <Text style={[s.heroBody, { color: p.muted }]}>
-                    A descriptive signal based on task completion, recent activity, and breadth of saved life areas. It is not a health or wellbeing score.
-                  </Text>
-                  <View style={s.heroFacts}>
-                    <View>
-                      <Text style={[s.factValue, { color: p.text }]}>{metrics.total}</Text>
-                      <Text style={[s.factLabel, { color: p.muted }]}>records</Text>
-                    </View>
-                    <View>
-                      <Text style={[s.factValue, { color: p.text }]}>{metrics.groups.length}</Text>
-                      <Text style={[s.factLabel, { color: p.muted }]}>areas</Text>
-                    </View>
-                    <View>
-                      <Text style={[s.factValue, { color: p.text }]}>{activeThisWeek}</Text>
-                      <Text style={[s.factLabel, { color: p.muted }]}>this week</Text>
-                    </View>
-                  </View>
-                </View>
-                <View style={[s.heroOrb, compact && s.heroOrbCompact]}>
-                  <LifeOrb score={metrics.pulse} palette={p} size={compact ? 142 : 160} />
-                </View>
-              </PremiumSurface>
-            </SpatialStage>
-          </MotionReveal>
-
-          <View style={s.metricGrid}>
-            <MotionReveal delay={60}>
-              <View style={[s.metricCard, { backgroundColor: p.panel, borderColor: p.line }]}>
-                <View style={[s.metricIcon, { backgroundColor: p.selected }]}>
-                  <SymbolView name={{ ios: 'checkmark.circle', android: 'task_alt', web: 'task_alt' }} size={20} tintColor={p.accent} />
-                </View>
-                <Text style={[s.metricNumber, { color: p.text }]}>{tasks.length ? `${Math.round(done / tasks.length * 100)}%` : '—'}</Text>
-                <Text style={[s.metricName, { color: p.text }]}>Task completion</Text>
-                <Text style={[s.metricDetail, { color: p.muted }]}>{tasks.length ? `${done} of ${tasks.length} tasks` : 'No tasks yet'}</Text>
+          <View style={[s.signalStage, { backgroundColor: p.panel }]}>
+            <View style={[s.signalHalo, { borderColor: p.line }]} />
+            <View style={s.signalCore}>
+              <MatrixLottie size={160} />
+              <View style={s.signalCopy}>
+                <Text style={[s.signalValue, { color: p.text }]}>{metrics.pulse}</Text>
+                <Text style={[s.signalLabel, { color: p.muted }]}>life pulse</Text>
               </View>
-            </MotionReveal>
+            </View>
 
-            <MotionReveal delay={100}>
-              <View style={[s.metricCard, { backgroundColor: p.panel, borderColor: p.line }]}>
-                <View style={[s.metricIcon, { backgroundColor: p.selected }]}>
-                  <SymbolView name={{ ios: 'lock', android: 'lock', web: 'lock' }} size={20} tintColor={p.accent} />
-                </View>
-                <Text style={[s.metricNumber, { color: p.text }]}>{privacyRate}%</Text>
-                <Text style={[s.metricName, { color: p.text }]}>On-device share</Text>
-                <Text style={[s.metricDetail, { color: p.muted }]}>{privateCount} records marked local only</Text>
-              </View>
-            </MotionReveal>
+            <View style={[s.floatingMetric, s.metricA, { backgroundColor: p.card, borderColor: p.line }]}>
+              <Text style={[s.floatValue, { color: p.accent }]}>{metrics.total}</Text>
+              <Text style={[s.floatLabel, { color: p.muted }]}>records</Text>
+            </View>
+            <View style={[s.floatingMetric, s.metricB, { backgroundColor: p.card, borderColor: p.line }]}>
+              <Text style={[s.floatValue, { color: p.success }]}>{taskRate}%</Text>
+              <Text style={[s.floatLabel, { color: p.muted }]}>tasks</Text>
+            </View>
+            <View style={[s.floatingMetric, s.metricC, { backgroundColor: p.card, borderColor: p.line }]}>
+              <Text style={[s.floatValue, { color: p.violet }]}>{privacyRate}%</Text>
+              <Text style={[s.floatLabel, { color: p.muted }]}>on device</Text>
+            </View>
           </View>
 
-          <MotionReveal delay={120}>
-            <View style={[s.chartCard, { backgroundColor: p.panel, borderColor: p.line }]}>
-              <View style={s.cardHead}>
-                <View>
-                  <Text style={[s.cardTitle, { color: p.text }]}>Capture activity</Text>
-                  <Text style={[s.cardSubtitle, { color: p.muted }]}>Records created over the last 7 days</Text>
-                </View>
-                <View style={[s.chartBadge, { backgroundColor: p.selected }]}>
-                  <Text style={[s.chartBadgeText, { color: p.accent }]}>{activeThisWeek} total</Text>
-                </View>
-              </View>
-              <Sparkline values={metrics.daily} palette={p} height={126} />
-              <View style={s.axisLabels}>
-                {['6d', '5d', '4d', '3d', '2d', '1d', 'Today'].map(label => (
-                  <Text key={label} style={[s.axisLabel, { color: p.muted }]}>{label}</Text>
-                ))}
-              </View>
-            </View>
-          </MotionReveal>
+          <Section
+            eyebrow="FLOW"
+            title="Your last 14 days"
+            subtitle="Every band is a life area. Thickness reflects capture volume."
+            color={p.violet}
+            text={p.text}
+            muted={p.muted}
+          />
+          <View style={[s.visualStage, { backgroundColor: p.panel }]}>
+            <LifeStream areas={areas} palette={p} height={220} />
+          </View>
 
-          <MotionReveal delay={150}>
-            <View style={[s.chartCard, { backgroundColor: p.panel, borderColor: p.line }]}>
-              <View style={s.cardHead}>
-                <View>
-                  <Text style={[s.cardTitle, { color: p.text }]}>Life areas</Text>
-                  <Text style={[s.cardSubtitle, { color: p.muted }]}>Record distribution by category</Text>
-                </View>
-              </View>
-              <DistributionBars data={metrics.groups} palette={p} maxItems={6} />
-            </View>
-          </MotionReveal>
+          <Section
+            eyebrow="CONSTELLATION"
+            title="Where your data lives"
+            subtitle="Tap an orbit to move into that life area."
+            color={p.cyan}
+            text={p.text}
+            muted={p.muted}
+          />
+          <LifeConstellation
+            areas={areas}
+            palette={p}
+            total={items.length}
+            onPressArea={label => router.navigate({ pathname: '/(tabs)/matrix', params: { focus: label } })}
+          />
 
-          <MotionReveal delay={180}>
-            <View style={[s.graphCard, { backgroundColor: p.panel, borderColor: p.line }]}>
-              <View style={s.cardHead}>
-                <View>
-                  <Text style={[s.cardTitle, { color: p.text }]}>Relationship field</Text>
-                  <Text style={[s.cardSubtitle, { color: p.muted }]}>A spatial view of your record domains</Text>
-                </View>
-                <Pressable onPress={() => router.navigate('/matrix')}>
-                  <Text style={[s.openLink, { color: p.accent }]}>Open Matrix</Text>
-                </Pressable>
-              </View>
-              <SpatialStage intensity={1.2}>
-                <LifeGraph groups={metrics.groups} palette={p} size={290} />
-              </SpatialStage>
-              <Text style={[s.note, { color: p.muted }]}>Node size represents saved record count only. It does not rate importance, balance, or wellbeing.</Text>
+          <Section
+            eyebrow="GRAVITY"
+            title="What has the most weight"
+            subtitle="Entity bubbles scale from the volume of saved records."
+            color={p.rose}
+            text={p.text}
+            muted={p.muted}
+          />
+          <EntityGalaxy
+            entities={galaxy}
+            palette={p}
+            onPressEntity={name => router.navigate({ pathname: '/entities', params: { type: name } })}
+          />
+
+          <Pressable onPress={() => router.navigate('/(tabs)/matrix')} style={s.openMatrix}>
+            <View style={[s.openMatrixLine, { backgroundColor: p.line }]} />
+            <View style={[s.openMatrixIcon, { backgroundColor: p.selected }]}>
+              <SymbolView name={{ ios: 'square.grid.2x2.fill', android: 'grid_view', web: 'grid_view' }} size={18} tintColor={p.accent} />
             </View>
-          </MotionReveal>
+            <View style={s.flex}>
+              <Text style={[s.openMatrixTitle, { color: p.text }]}>Enter the full Matrix</Text>
+              <Text style={[s.openMatrixText, { color: p.muted }]}>Explore life areas spatially instead of reading another report.</Text>
+            </View>
+            <SymbolView name={{ ios: 'arrow.right', android: 'arrow_forward', web: 'arrow_forward' }} size={16} tintColor={p.accent} />
+          </Pressable>
         </>
       ) : (
-        <>
-          <Text style={[s.savedIntro, { color: p.muted }]}>
-            Stored insights from your selected data source. These are saved observations, not newly generated advice.
-          </Text>
-          {insights.map((item, index) => (
-            <MotionReveal key={item.id} delay={Math.min(index, 6) * 40}>
-              <Pressable accessibilityRole="button" style={[s.savedCard, { backgroundColor: p.panel, borderColor: p.line }]} onPress={() => router.navigate({ pathname: '/entities', params: { id: item.id } })}>
-                <View style={s.savedTop}>
-                  <View style={[s.metricIcon, { backgroundColor: p.selected }]}>
-                    <SymbolView name={{ ios: 'lightbulb', android: 'lightbulb', web: 'lightbulb' }} size={19} tintColor={p.accent} />
-                  </View>
-                  <Text style={[s.savedType, { color: p.accent }]}>{String(item.metadata.subtype ?? 'Observation')}</Text>
-                </View>
-                <Text style={[s.savedTitle, { color: p.text }]}>{item.title}</Text>
-                {item.details && item.details !== item.title ? <Text style={[s.savedBody, { color: p.muted }]}>{item.details}</Text> : null}
-                <Text style={[s.openLink, { color: p.accent }]}>View details</Text>
-              </Pressable>
-            </MotionReveal>
-          ))}
-          {!insights.length ? (
-            <View style={[s.state, { backgroundColor: p.panel, borderColor: p.line }]}>
-              <Text style={[s.stateTitle, { color: p.text }]}>No saved insights yet</Text>
-              <Text style={[s.stateText, { color: p.muted }]}>Your visual overview is available above whenever you have saved records.</Text>
+        <View style={s.insightRiver}>
+          <View style={[s.insightLine, { backgroundColor: p.line }]} />
+          {savedInsights.length ? savedInsights.map((item, index) => (
+            <Pressable
+              key={item.id}
+              onPress={() => router.navigate({ pathname: '/entities', params: { id: item.id } })}
+              style={s.insightMoment}
+            >
+              <View style={[s.insightNode, { backgroundColor: index % 2 ? p.violet : p.accent, borderColor: p.bg }]} />
+              <View style={s.insightCopy}>
+                <Text style={[s.insightType, { color: index % 2 ? p.violet : p.accent }]}>
+                  {String(item.metadata.subtype ?? 'Observation').toUpperCase()}
+                </Text>
+                <Text style={[s.insightTitle, { color: p.text }]}>{item.title}</Text>
+                {item.details && item.details !== item.title ? (
+                  <Text style={[s.insightBody, { color: p.muted }]}>{item.details}</Text>
+                ) : null}
+              </View>
+              <SymbolView name={{ ios: 'arrow.up.right', android: 'north_east', web: 'north_east' }} size={13} tintColor={p.muted} />
+            </Pressable>
+          )) : (
+            <View style={[s.savedEmpty, { backgroundColor: p.panel }]}>
+              <MatrixLottie size={116} />
+              <Text style={[s.savedEmptyTitle, { color: p.text }]}>No saved insights yet</Text>
+              <Text style={[s.savedEmptyText, { color: p.muted }]}>Your live visual insights are already available in Overview.</Text>
             </View>
-          ) : null}
-        </>
+          )}
+        </View>
       )}
     </ScrollView>
   );
 }
 
+function Section({
+  eyebrow,
+  title,
+  subtitle,
+  color,
+  text,
+  muted,
+}: {
+  eyebrow: string;
+  title: string;
+  subtitle: string;
+  color: string;
+  text: string;
+  muted: string;
+}) {
+  return (
+    <View style={s.section}>
+      <Text style={[s.sectionEyebrow, { color }]}>{eyebrow}</Text>
+      <Text style={[s.sectionTitle, { color: text }]}>{title}</Text>
+      <Text style={[s.sectionSubtitle, { color: muted }]}>{subtitle}</Text>
+    </View>
+  );
+}
+
 const s = StyleSheet.create({
-  page: { paddingHorizontal: 20, paddingTop: 12, paddingBottom: 80, gap: 14, maxWidth: 820, width: '100%', alignSelf: 'center' },
+  page: { paddingHorizontal: 14, paddingTop: 10, paddingBottom: 96, maxWidth: 760, width: '100%', alignSelf: 'center' },
   flex: { flex: 1 },
-  header: { flexDirection: 'row', alignItems: 'center', marginBottom: 2 },
-  title: { fontSize: 32, lineHeight: 38, fontWeight: '700', letterSpacing: -1 },
-  subtitle: { fontSize: 13, lineHeight: 19, marginTop: 3 },
-  iconButton: { width: 44, height: 44, borderRadius: 22, borderWidth: 1, alignItems: 'center', justifyContent: 'center' },
-  tabs: { flexDirection: 'row', borderRadius: 12, padding: 3, marginTop: 8, marginBottom: 2 },
-  tab: { flex: 1, minHeight: 38, borderRadius: 10, alignItems: 'center', justifyContent: 'center' },
-  tabText: { fontSize: 13, fontWeight: '600' },
-  hero: { minHeight: 260, borderRadius: 28, borderWidth: 1, padding: 22, flexDirection: 'row', overflow: 'hidden' },
-  heroCopy: { flex: 1, justifyContent: 'center' },
-  heroCompact: { flexDirection: 'column', minHeight: 0 },
-  kicker: { fontSize: 10, fontWeight: '700', letterSpacing: 1.1 },
-  heroTitle: { fontSize: 29, lineHeight: 34, fontWeight: '700', letterSpacing: -0.8, marginTop: 7 },
-  heroBody: { fontSize: 12.5, lineHeight: 19, marginTop: 8, maxWidth: 430 },
-  heroFacts: { flexDirection: 'row', gap: 28, marginTop: 24 },
-  factValue: { fontSize: 20, fontWeight: '700', fontVariant: ['tabular-nums'] },
-  factLabel: { fontSize: 10.5, marginTop: 2 },
-  heroOrb: { width: 184, alignItems: 'center', justifyContent: 'center' },
-  heroOrbCompact: { width: '100%', marginTop: 14 },
-  metricGrid: { flexDirection: 'row', gap: 12 },
-  metricCard: { flex: 1, minHeight: 164, borderRadius: 18, borderWidth: 1, padding: 17 },
-  metricIcon: { width: 38, height: 38, borderRadius: 12, alignItems: 'center', justifyContent: 'center' },
-  metricNumber: { fontSize: 27, fontWeight: '700', letterSpacing: -0.7, marginTop: 16 },
-  metricName: { fontSize: 14, fontWeight: '600', marginTop: 3 },
-  metricDetail: { fontSize: 11.5, lineHeight: 17, marginTop: 4 },
-  chartCard: { borderRadius: 20, borderWidth: 1, padding: 18 },
-  cardHead: { flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between', gap: 14, marginBottom: 16 },
-  cardTitle: { fontSize: 17, fontWeight: '600' },
-  cardSubtitle: { fontSize: 11.5, lineHeight: 17, marginTop: 3 },
-  chartBadge: { borderRadius: 999, paddingHorizontal: 10, paddingVertical: 6 },
-  chartBadgeText: { fontSize: 10.5, fontWeight: '600' },
-  axisLabels: { flexDirection: 'row', justifyContent: 'space-between', marginTop: 1 },
-  axisLabel: { fontSize: 9.5 },
-  graphCard: { borderRadius: 20, borderWidth: 1, padding: 18, overflow: 'hidden' },
-  openLink: { fontSize: 12.5, fontWeight: '600' },
-  note: { fontSize: 10.5, lineHeight: 16, textAlign: 'center', marginTop: -2 },
-  savedIntro: { fontSize: 12.5, lineHeight: 19, marginVertical: 4 },
-  savedCard: { borderRadius: 18, borderWidth: 1, padding: 18 },
-  savedTop: { flexDirection: 'row', alignItems: 'center', gap: 10 },
-  savedType: { fontSize: 10.5, fontWeight: '700', letterSpacing: 0.7, textTransform: 'uppercase' },
-  savedTitle: { fontSize: 17, fontWeight: '600', lineHeight: 23, marginTop: 14 },
-  savedBody: { fontSize: 12.5, lineHeight: 19, marginTop: 7 },
-  state: { borderRadius: 16, borderWidth: 1, padding: 20 },
-  stateTitle: { fontSize: 16, fontWeight: '600' },
-  stateText: { fontSize: 13, lineHeight: 19, marginTop: 5 },
+  header: { flexDirection: 'row', alignItems: 'center', marginBottom: 12 },
+  eyebrow: { fontSize: 9.5, fontWeight: '700', letterSpacing: 1.4 },
+  title: { fontSize: 29, lineHeight: 35, fontWeight: '750' as '700', letterSpacing: -0.85, marginTop: 2 },
+  subtitle: { fontSize: 10.5, marginTop: 3 },
+  iconButton: { width: 40, height: 40, borderRadius: 20, alignItems: 'center', justifyContent: 'center' },
+
+  modeSwitch: { alignSelf: 'flex-start', flexDirection: 'row', minHeight: 38, borderRadius: 19, borderWidth: 1, padding: 3 },
+  mode: { minWidth: 88, minHeight: 30, borderRadius: 15, alignItems: 'center', justifyContent: 'center' },
+  modeText: { fontSize: 10.5, fontWeight: '600' },
+
+  signalStage: { height: 350, borderRadius: 32, marginTop: 16, overflow: 'hidden', position: 'relative' },
+  signalHalo: { position: 'absolute', width: 246, height: 246, borderRadius: 123, borderWidth: 1, left: '50%', top: '50%', marginLeft: -123, marginTop: -123 },
+  signalCore: { position: 'absolute', left: '50%', top: '50%', width: 180, height: 180, marginLeft: -90, marginTop: -90, alignItems: 'center', justifyContent: 'center' },
+  signalCopy: { position: 'absolute', alignItems: 'center' },
+  signalValue: { fontSize: 32, fontWeight: '700', letterSpacing: -1 },
+  signalLabel: { fontSize: 9.5, marginTop: 1 },
+  floatingMetric: { position: 'absolute', minWidth: 82, minHeight: 58, borderRadius: 20, borderWidth: 1, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 10 },
+  metricA: { top: 28, left: 22 },
+  metricB: { top: 42, right: 18 },
+  metricC: { bottom: 24, right: 34 },
+  floatValue: { fontSize: 17, fontWeight: '700' },
+  floatLabel: { fontSize: 8.5, marginTop: 2 },
+
+  section: { marginTop: 28, marginBottom: 11 },
+  sectionEyebrow: { fontSize: 8.5, fontWeight: '700', letterSpacing: 1.2 },
+  sectionTitle: { fontSize: 19, fontWeight: '700', letterSpacing: -0.4, marginTop: 3 },
+  sectionSubtitle: { fontSize: 9.5, lineHeight: 14, marginTop: 3 },
+  visualStage: { borderRadius: 30, paddingHorizontal: 14, paddingVertical: 12 },
+
+  openMatrix: { minHeight: 80, flexDirection: 'row', alignItems: 'center', gap: 11, marginTop: 24 },
+  openMatrixLine: { position: 'absolute', left: 0, right: 0, top: 0, height: StyleSheet.hairlineWidth },
+  openMatrixIcon: { width: 42, height: 42, borderRadius: 21, alignItems: 'center', justifyContent: 'center' },
+  openMatrixTitle: { fontSize: 12.5, fontWeight: '700' },
+  openMatrixText: { fontSize: 9.5, lineHeight: 14, marginTop: 3 },
+
+  insightRiver: { position: 'relative', marginTop: 22, paddingLeft: 18 },
+  insightLine: { position: 'absolute', left: 22, top: 12, bottom: 12, width: 1 },
+  insightMoment: { minHeight: 94, flexDirection: 'row', alignItems: 'flex-start', gap: 12, paddingVertical: 13 },
+  insightNode: { width: 11, height: 11, borderRadius: 6, borderWidth: 2, marginTop: 6, marginLeft: -1, zIndex: 2 },
+  insightCopy: { flex: 1 },
+  insightType: { fontSize: 8, fontWeight: '700', letterSpacing: 1 },
+  insightTitle: { fontSize: 14, fontWeight: '700', marginTop: 4 },
+  insightBody: { fontSize: 10, lineHeight: 15, marginTop: 4 },
+  savedEmpty: { borderRadius: 30, minHeight: 260, alignItems: 'center', justifyContent: 'center', padding: 20 },
+  savedEmptyTitle: { fontSize: 15, fontWeight: '700' },
+  savedEmptyText: { fontSize: 10.5, textAlign: 'center', marginTop: 4 },
+
+  error: { borderWidth: 1, borderRadius: 18, padding: 16, marginTop: 16 },
+  errorTitle: { fontSize: 13, fontWeight: '700' },
+  errorText: { fontSize: 10, marginTop: 3 },
 });
