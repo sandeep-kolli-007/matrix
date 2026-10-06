@@ -154,12 +154,13 @@ function smoothPath(values: number[], width: number, height: number, maxValue?: 
   for (let index = 0; index < points.length - 1; index++) {
     const current = points[index];
     const next = points[index + 1];
-    const midX = (current.x + next.x) / 2;
-    const midY = (current.y + next.y) / 2;
-    path += ` Q ${current.x.toFixed(2)} ${current.y.toFixed(2)} ${midX.toFixed(2)} ${midY.toFixed(2)}`;
+    const dx = next.x - current.x;
+    // Horizontal cubic controls keep the curve smooth without introducing
+    // false peaks/valleys between sparse daily counts.
+    const c1x = current.x + dx * 0.36;
+    const c2x = next.x - dx * 0.36;
+    path += ` C ${c1x.toFixed(2)} ${current.y.toFixed(2)} ${c2x.toFixed(2)} ${next.y.toFixed(2)} ${next.x.toFixed(2)} ${next.y.toFixed(2)}`;
   }
-  const last = points[points.length - 1];
-  path += ` T ${last.x.toFixed(2)} ${last.y.toFixed(2)}`;
   return path;
 }
 
